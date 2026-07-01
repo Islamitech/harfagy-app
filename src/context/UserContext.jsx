@@ -51,7 +51,21 @@ export const UserProvider = ({ children }) => {
   const login = async (phone, password, role) => {
     try {
       const usersList = await db.users.getAll();
-      const matchedUser = usersList.find(u => u.phone === phone && u.role === role);
+      const foundUser = usersList.find(u => u.phone === phone);
+      
+      if (!foundUser) {
+        throw new Error(language === 'ar' ? '⚠️ عذراً، لم نجد حساباً يطابق هذه البيانات.' : 'Account not found.');
+      }
+
+      // التحقق من الرتب الإدارية العليا
+      const isAdminRole = ['superadmin', 'admin', 'auditor', 'security'].includes(foundUser.role);
+      
+      // إذا لم يكن مديراً، يجب تطابق الرتبة المحددة بالواجهة مع رتبة حسابه المسجلة
+      if (!isAdminRole && foundUser.role !== role) {
+        throw new Error(language === 'ar' ? '⚠️ نوع الرتبة المحدد لا يتطابق مع هذا الحساب.' : 'Role mismatch.');
+      }
+
+      const matchedUser = foundUser;
       
       if (matchedUser) {
         if (matchedUser.password && matchedUser.password !== password) {
@@ -68,8 +82,6 @@ export const UserProvider = ({ children }) => {
           'success'
         );
         return matchedUser;
-      } else {
-        throw new Error(language === 'ar' ? 'عذراً، لم نجد حساباً يطابق هذه البيانات.' : 'Account not found.');
       }
     } catch (err) {
       showToast(err.message, 'error');
