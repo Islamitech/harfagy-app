@@ -305,9 +305,9 @@ export default function App() {
 
                 {/* ترويسة هاتف العميل */}
                 <div className="pt-8 flex-1 overflow-y-auto pb-16 hide-scrollbar bg-slate-50 dark:bg-[#0b0f19]">
-                  <div className="bg-white dark:bg-slate-900 border-b border-slate-200/50 dark:border-slate-800/80 px-4 py-3 text-[11px] font-black flex justify-between items-center sticky top-0 z-15 shadow-sm text-slate-800 dark:text-brand-light">
-                    <span className="flex items-center gap-1.5">
-                      <img src="/assets/icon-192.png" alt="logo" className="w-4 h-4 rounded-md object-cover" />
+                  <div className="bg-white dark:bg-slate-900 border-b border-slate-200/50 dark:border-slate-800/80 px-4 py-2.5 text-[11px] font-black flex justify-between items-center sticky top-0 z-15 shadow-sm text-slate-800 dark:text-brand-light">
+                    <span className="flex items-center gap-2">
+                      <img src="/assets/icon-192.png" alt="logo" className="w-7 h-7 object-contain drop-shadow-sm" />
                       <span>{currentUser.name} ({currentUser.custom_id || 'U-0101'})</span>
                     </span>
                     <span className="text-[10px] text-orange-500">📍 حدائق الأهرام</span>
@@ -364,9 +364,9 @@ export default function App() {
 
                 {/* ترويسة هاتف الحرفي */}
                 <div className="pt-8 flex-1 overflow-y-auto pb-16 hide-scrollbar bg-slate-50 dark:bg-[#0b0f19]">
-                  <div className="bg-white dark:bg-slate-900 border-b border-slate-200/50 dark:border-slate-800/80 px-4 py-3 text-[11px] font-black flex justify-between items-center sticky top-0 z-15 shadow-sm text-slate-800 dark:text-brand-light">
-                    <span className="flex items-center gap-1.5">
-                      <img src="/assets/icon-192.png" alt="logo" className="w-4 h-4 rounded-md object-cover" />
+                  <div className="bg-white dark:bg-slate-900 border-b border-slate-200/50 dark:border-slate-800/80 px-4 py-2.5 text-[11px] font-black flex justify-between items-center sticky top-0 z-15 shadow-sm text-slate-800 dark:text-brand-light">
+                    <span className="flex items-center gap-2">
+                      <img src="/assets/icon-192.png" alt="logo" className="w-7 h-7 object-contain drop-shadow-sm" />
                       <span>{currentUser.name}</span>
                     </span>
                     <span className="text-[10px] text-orange-500 font-bold bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">{currentUser.custom_id || 'AT-0202'}</span>
