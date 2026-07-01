@@ -66,6 +66,88 @@ export const MasterDirectory = ({ activeRole = 'superadmin' }) => {
     }
   };
 
+  // تغيير رتبة وتعيين صلاحيات الإدارة للمستخدمين مع حماية البيانات من التكرار
+  const updateUserRole = async (user, newRole) => {
+    if (activeRole !== 'superadmin' && activeRole !== 'admin') {
+      showToast(
+        language === 'ar' ? '⚠️ عذراً، لا تمتلك صلاحية تعديل رتب الحسابات (هذه الصلاحية للمدير العام فقط).' : 'Access denied: Super Admin only.',
+        'error'
+      );
+      return;
+    }
+
+    try {
+      // 1. توليد كود تعريفي مقيد وجديد مطابق للرتبة الجديدة
+      const tempUser = { ...user, role: newRole };
+      let newCustomId = user.custom_id;
+      if (user.role !== newRole) {
+        newCustomId = await db.generateCustomUserId(tempUser);
+      }
+
+      // 2. تحديث رتبة ومعرف المستخدم في جدول المستخدمين (users)
+      await db.users.update(user.id, { 
+        role: newRole,
+        custom_id: newCustomId
+      });
+
+      // 3. مزامنة وتأمين جدول الحرفيين (artisans) لمنع الأخطاء والتكرارات
+      if (newRole === 'artisan') {
+        const artisansList = await db.artisans.getAll();
+        const existingArtisan = artisansList.find(a => a.userId === user.id);
+        
+        if (!existingArtisan) {
+          // إنشاء ملف أسطى جديد
+          await db.addDocument("artisans", {
+            userId: user.id,
+            name: user.name,
+            category: 'plumber',
+            custom_id: newCustomId,
+            bio: 'عضو مسجل جديد صيانة وتمديدات صحية.',
+            rating: 5.0,
+            completedJobs: 0,
+            wallet: 0,
+            commissionDue: 0,
+            isOnline: true,
+            verified: false,
+            rank: 'bronze'
+          });
+        } else {
+          // تحديث معرف الملف القائم
+          await db.artisans.update(existingArtisan.id, { 
+            custom_id: newCustomId 
+          });
+        }
+      } else {
+        // حذف ملف الأسطى إن وجد لمنع ظهوره بالخطأ بالدليل العام للعملاء عند تغيير رتبته
+        const artisansList = await db.artisans.getAll();
+        const existingArtisan = artisansList.find(a => a.userId === user.id);
+        if (existingArtisan) {
+          await db.deleteDocument("artisans", existingArtisan.id);
+        }
+      }
+
+      // 4. تسجيل الإجراء الرقابي في سجل الأمان (Audit Logs)
+      await db.addDocument('audit_logs', {
+        adminId: 'usr-admin',
+        adminRole: activeRole,
+        action: 'change_user_role',
+        targetUserId: user.id,
+        targetUserName: user.name,
+        ip: '192.168.1.45',
+        details: `👑 ترقية/تغيير رتبة المستخدم ${user.name} من (${user.role}) إلى (${newRole}) وتوليد المعرف الرقمي (${newCustomId}) له.`,
+        timestamp: new Date().toISOString()
+      });
+
+      showToast(
+        language === 'ar' ? `👑 تم تغيير رتبة ${user.name} بنجاح إلى رتبة جديدة!` : `User role changed successfully!`,
+        'success'
+      );
+    } catch (err) {
+      console.error(err);
+      showToast(language === 'ar' ? 'حدث خطأ أثناء تعديل رتبة الحساب.' : 'Error changing role.', 'error');
+    }
+  };
+
   // معالجة البحث وتصفية المدخلات ضد XSS
   const handleSearchChange = (e) => {
     const cleaned = sanitizeInput(e.target.value);
@@ -109,7 +191,9 @@ export const MasterDirectory = ({ activeRole = 'superadmin' }) => {
             <option value="all">الكل</option>
             <option value="customer">العملاء 👤</option>
             <option value="artisan">الحرفيين 👷‍♂️</option>
-            <option value="admin">المدراء 👑</option>
+            <option value="auditor">المشرف المالي 💵</option>
+            <option value="security">المشرف الأمني 🛡️</option>
+            <option value="superadmin">المدير العام 👑</option>
           </select>
         </div>
       </div>
@@ -143,15 +227,37 @@ export const MasterDirectory = ({ activeRole = 'superadmin' }) => {
                   </td>
                   
                   <td className="p-3">
-                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-black border
-                      ${user.role === 'admin' 
-                        ? 'text-purple-600 bg-purple-500/10 border-purple-200' 
-                        : user.role === 'artisan' 
-                          ? 'text-brand-orange bg-orange-500/10 border-orange-200' 
-                          : 'text-brand-navy bg-slate-100 dark:bg-slate-800 dark:text-brand-light'}`}
-                    >
-                      {user.role === 'admin' ? 'مدير' : user.role === 'artisan' ? 'حرفي' : 'عميل'}
-                    </span>
+                    {user.id === 'usr-admin' ? (
+                      <span className="px-2 py-0.5 rounded-full text-[9px] font-black border text-purple-600 bg-purple-500/10 border-purple-200">
+                        المدير العام 👑
+                      </span>
+                    ) : activeRole === 'superadmin' || activeRole === 'admin' ? (
+                      <select
+                        value={user.role}
+                        onChange={(e) => updateUserRole(user, e.target.value)}
+                        className="text-[10px] p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 font-bold outline-none focus:border-brand-orange cursor-pointer"
+                      >
+                        <option value="customer">عميل 👤</option>
+                        <option value="artisan">حرفي 👷‍♂️</option>
+                        <option value="auditor">مشرف مالي 💵</option>
+                        <option value="security">مشرف أمني 🛡️</option>
+                        <option value="superadmin">مدير عام 👑</option>
+                      </select>
+                    ) : (
+                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-black border
+                        ${user.role === 'superadmin' || user.role === 'admin' 
+                          ? 'text-purple-600 bg-purple-500/10 border-purple-200' 
+                          : user.role === 'artisan' 
+                            ? 'text-brand-orange bg-orange-500/10 border-orange-200' 
+                            : 'text-brand-navy bg-slate-100 dark:bg-slate-800 dark:text-brand-light'}`}
+                      >
+                        {user.role === 'superadmin' || user.role === 'admin' ? 'مدير عام' 
+                         : user.role === 'artisan' ? 'حرفي' 
+                         : user.role === 'auditor' ? 'مشرف مالي' 
+                         : user.role === 'security' ? 'مشرف أمني' 
+                         : 'عميل'}
+                      </span>
+                    )}
                   </td>
                   
                   <td className="p-3 text-center">
