@@ -519,7 +519,7 @@ export default function App() {
                     
                     <div className="pt-8 flex-1 overflow-y-auto pb-16 hide-scrollbar bg-slate-50 dark:bg-[#0b0f19]">
                       <div className="bg-white dark:bg-slate-900 border-b border-slate-200/50 dark:border-slate-800/80 px-4 py-3 text-[11px] font-black flex justify-between items-center sticky top-0 z-10 text-slate-800 dark:text-brand-light">
-                        <span>📱 هاتف العميل: أحمد صاوي (U-0101)</span>
+                        <span>📱 هاتف العميل: {currentUser && currentUser.role === 'customer' ? currentUser.name : 'أحمد صاوي'} ({currentUser && currentUser.role === 'customer' ? currentUser.custom_id : 'U-0101'})</span>
                         <span>📍 حدائق الأهرام</span>
                       </div>
                       <CustomerHome />
@@ -540,7 +540,7 @@ export default function App() {
                     
                     <div className="pt-8 flex-1 overflow-y-auto pb-16 hide-scrollbar bg-slate-50 dark:bg-[#0b0f19]">
                       <div className="bg-white dark:bg-slate-900 border-b border-slate-200/50 dark:border-slate-800/80 px-4 py-3 text-[11px] font-black flex justify-between items-center sticky top-0 z-10 text-slate-800 dark:text-brand-light">
-                        <span>📱 هاتف الحرفي: شريف رفعت (AT-0202)</span>
+                        <span>📱 هاتف الحرفي: {currentUser && currentUser.role === 'artisan' ? currentUser.name : 'شريف رفعت'} ({currentUser && currentUser.role === 'artisan' ? currentUser.custom_id : 'AT-0202'})</span>
                         <span>⚡ صيانة الأعطال</span>
                       </div>
                       <ArtisanProfile />

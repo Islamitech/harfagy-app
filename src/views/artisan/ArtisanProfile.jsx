@@ -46,7 +46,8 @@ export const ArtisanProfile = () => {
 
     const fetchAllArtisanData = async () => {
       const artisansList = await db.getCollection("artisans");
-      let artProfile = artisansList.find(a => a.userId === currentUser.id);
+      const isUserAdmin = ['superadmin', 'admin', 'auditor', 'security'].includes(currentUser.role);
+      let artProfile = artisansList.find(a => a.userId === (isUserAdmin ? 'art-1-user' : currentUser.id));
       
       // حل فوري ذكي لمنع تعليق شاشة التحميل للحرفيين المسجلين حديثاً
       if (!artProfile) {
