@@ -22,14 +22,35 @@ export const IncomingLeads = ({ onAcceptSuccess }) => {
     if (!currentUser) return;
     const fetchArtisanProfileAndUser = async () => {
       const artisansList = await db.getCollection("artisans");
-      const isUserAdmin = ['superadmin', 'admin', 'auditor', 'security'].includes(currentUser.role);
-      const targetUserId = isUserAdmin ? 'art-1-user' : currentUser.id;
+      const isArtisan = currentUser.role === 'artisan';
+      const targetUserId = isArtisan ? currentUser.id : 'art-1-user';
 
-      const art = artisansList.find(a => a.userId === targetUserId);
+      let art = artisansList.find(a => a.userId === targetUserId);
+      if (!art && !isArtisan) {
+        art = {
+          id: 'art-1',
+          userId: 'art-1-user',
+          name: 'شريف رفعت',
+          category: 'hvac',
+          custom_id: 'AT-0202',
+          isOnline: true,
+          verified: true
+        };
+      }
       if (art) setArtisan(art);
 
       const usersList = await db.getCollection("users");
-      const usr = usersList.find(u => u.id === targetUserId);
+      let usr = usersList.find(u => u.id === targetUserId);
+      if (!usr && !isArtisan) {
+        usr = {
+          id: 'art-1-user',
+          name: 'شريف رفعت',
+          phone: '01198765432',
+          role: 'artisan',
+          governorate: 'الجيزة',
+          district: 'حدائق الأهرام'
+        };
+      }
       if (usr) setArtisanUser(usr);
     };
     fetchArtisanProfileAndUser();
@@ -40,12 +61,12 @@ export const IncomingLeads = ({ onAcceptSuccess }) => {
     if (!artisan || !artisanUser) return;
     const fetchRealLeads = async () => {
       const allJobs = await db.jobs.getAll();
-      const isUserAdmin = ['superadmin', 'admin', 'auditor', 'security'].includes(currentUser?.role);
+      const isArtisan = currentUser?.role === 'artisan';
+      
       const matching = allJobs.filter(j => 
         j.status === 'pending' && 
         j.artisanId === null && 
-        (isUserAdmin || j.category === artisan.category) &&
-        j.district === artisanUser.district // مطابقة الحي من حساب الفني بالملف الرئيسي
+        (!isArtisan || (j.category === artisan.category && j.district === artisanUser.district))
       );
       setRealLeads(matching);
     };
