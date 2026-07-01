@@ -32,10 +32,11 @@ export const IncomingLeads = ({ onAcceptSuccess }) => {
     if (!artisan) return;
     const fetchRealLeads = async () => {
       const allJobs = await db.jobs.getAll();
+      const isUserAdmin = ['superadmin', 'admin', 'auditor', 'security'].includes(currentUser?.role);
       const matching = allJobs.filter(j => 
         j.status === 'pending' && 
         j.artisanId === null && 
-        j.category === artisan.category &&
+        (isUserAdmin || j.category === artisan.category) &&
         j.district === artisan.district
       );
       setRealLeads(matching);
@@ -71,49 +72,7 @@ export const IncomingLeads = ({ onAcceptSuccess }) => {
     }
   };
 
-  // محاكاة طلب صيانة وارد (للمستثمرين) - ينشئ طلباً حقيقياً معلقاً في منطقتك بالداتابيز
-  const triggerMockLead = async () => {
-    if (!artisan) return;
-    if (!artisan.isOnline) {
-      showToast(
-        language === 'ar' ? '⚠️ يرجى تفعيل حالة الاتصال (متصل) أولاً لاستقبال الطلبات.' : 'Please turn on presence first.',
-        'info'
-      );
-      return;
-    }
 
-    showToast(language === 'ar' ? '📡 جاري بث طلب محاكاة لعميل قريب...' : 'Broadcasting simulated customer request...', 'info');
-
-    setTimeout(async () => {
-      try {
-        const mockJob = {
-          customerId: 'cust-1',
-          customerName: 'كريم فهمي',
-          customerPhone: '01011223344',
-          artisanId: null,
-          artisanName: null,
-          category: artisan.category,
-          description: 'تسريب مياه حاد من محبس التغذية الرئيسي في المطبخ ويحتاج لتغيير فوري وعاجل.',
-          preferredDate: 'الزيارة الآن (فوراً) ⚡',
-          paymentMethod: 'cash',
-          street: 'شارع الجيش - البوابة الأولى',
-          building: '15 و',
-          apartment: '2',
-          governorate: 'الجيزة',
-          district: artisan.district, // نفس حي الفني للمطابقة الجغرافية!
-          status: 'pending',
-          price: 50,
-          isRated: false,
-          createdAt: new Date().toISOString()
-        };
-        await db.jobs.create(mockJob);
-        playAlertSound();
-        showToast(language === 'ar' ? '🚨 تم رصد وبث طلب صيانة جديد في منطقتك!' : 'New lead broadcasted in your area!', 'success');
-      } catch (err) {
-        console.error(err);
-      }
-    }, 1000);
-  };
 
   // قبول الطلب وتحديد وقت الوصول المتوقع (ETA) والتحرك فوراً
   const acceptLeadWithEta = async (job, selectedEta) => {
@@ -224,14 +183,6 @@ export const IncomingLeads = ({ onAcceptSuccess }) => {
           <div className="text-center py-12 bg-white dark:bg-brand-slate border border-slate-200 dark:border-slate-800 rounded-3xl flex flex-col items-center">
             <span className="text-3xl block mb-2">📡</span>
             <p className="text-xs font-bold text-slate-400">لا يوجد طلبات بث عاجلة بمنطقتك حالياً.</p>
-            
-            {/* زر محاكاة المستثمرين للمطابقة اللحظية */}
-            <Button 
-              onClick={triggerMockLead}
-              className="mt-4 text-xs font-bold py-2 px-4 shadow-md hover:shadow-lg transition-shadow"
-            >
-              محاكاة طلب عميل قريب (للمستثمرين)
-            </Button>
           </div>
         )}
       </div>
