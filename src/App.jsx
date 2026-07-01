@@ -149,7 +149,7 @@ export default function App() {
           {/* شريط الإعدادات العلوي للبوابة */}
           <header className="px-6 py-4 flex items-center justify-between z-10">
             <div className="flex items-center gap-2">
-              <img src="/assets/icon-192.png" alt="logo" className="w-8 h-8 rounded-xl object-cover shadow-sm border border-orange-500/20" />
+              <img src="/assets/icon-192.png" alt="logo" className="w-9 h-9 object-contain" />
               <strong className="text-lg font-black text-orange-500 tracking-wide">حَرفَجي</strong>
               <span className="hidden sm:inline-block text-[10px] text-emerald-500 bg-emerald-500/10 px-2.5 py-1 rounded-full font-bold shadow-sm">بوابة الخدمات الآمنة 📍</span>
             </div>
@@ -172,9 +172,7 @@ export default function App() {
           {/* الدخول الفردي المباشر */}
           <main className="max-w-md mx-auto py-8 px-4 flex flex-col gap-6 w-full justify-center flex-1 z-10">
             <div className="text-center flex flex-col items-center gap-3">
-              <div className="w-16 h-16 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 flex items-center justify-center shadow-lg p-2.5">
-                <img src="/assets/icon-192.png" alt="logo" className="w-full h-full rounded-2xl object-cover" />
-              </div>
+              <img src="/assets/icon-192.png" alt="logo" className="w-24 h-24 object-contain drop-shadow-md hover:scale-105 transition-transform duration-300 mb-1" />
               <div>
                 <h1 className="text-2xl font-black text-slate-900 dark:text-brand-light">منصة حرفجي للخدمات المنزلية</h1>
                 <p className="text-xs text-slate-450 dark:text-slate-400 mt-2">تسجيل دخول آمن وتصفح الدليل المهني المعتمد بمصر</p>
