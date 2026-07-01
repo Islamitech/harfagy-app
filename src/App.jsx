@@ -522,13 +522,15 @@ export default function App() {
                         <span>📱 هاتف العميل: {currentUser && currentUser.role === 'customer' ? currentUser.name : 'أحمد صاوي'} ({currentUser && currentUser.role === 'customer' ? currentUser.custom_id : 'U-0101'})</span>
                         <span>📍 حدائق الأهرام</span>
                       </div>
-                      <CustomerHome />
+                      {customerTab === 'home' && <CustomerHome />}
+                      {customerTab === 'tracking' && <JobTracking />}
+                      {customerTab === 'profile' && <CustomerProfile />}
                     </div>
 
                     <nav className="absolute bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-900/90 border-t border-slate-100 dark:border-slate-800 py-2.5 px-3 flex justify-around items-center z-10 shadow-lg">
-                      <button onClick={() => setCustomerTab('home')} className="text-orange-500 flex flex-col items-center text-[9px] font-bold"><span className="text-base">🔍</span><span>تصفح</span></button>
-                      <button onClick={() => setCustomerTab('tracking')} className="text-slate-400 flex flex-col items-center text-[9px] font-bold"><span className="text-base">📋</span><span>التتبع</span></button>
-                      <button onClick={() => setCustomerTab('profile')} className="text-slate-400 flex flex-col items-center text-[9px] font-bold"><span className="text-base">👤</span><span>حسابي</span></button>
+                      <button onClick={() => setCustomerTab('home')} className={`flex flex-col items-center text-[9px] font-bold transition-all ${customerTab === 'home' ? 'text-orange-500 scale-105' : 'text-slate-400'}`}><span className="text-base">🔍</span><span>تصفح</span></button>
+                      <button onClick={() => setCustomerTab('tracking')} className={`flex flex-col items-center text-[9px] font-bold transition-all ${customerTab === 'tracking' ? 'text-orange-500 scale-105' : 'text-slate-400'}`}><span className="text-base">📋</span><span>التتبع</span></button>
+                      <button onClick={() => setCustomerTab('profile')} className={`flex flex-col items-center text-[9px] font-bold transition-all ${customerTab === 'profile' ? 'text-orange-500 scale-105' : 'text-slate-400'}`}><span className="text-base">👤</span><span>حسابي</span></button>
                     </nav>
                   </div>
 
@@ -549,9 +551,9 @@ export default function App() {
                     </div>
 
                     <nav className="absolute bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-900/90 border-t border-slate-100 dark:border-slate-800 py-2.5 px-3 flex justify-around items-center z-10 shadow-lg">
-                      <button onClick={() => setArtisanTab('leads')} className="text-slate-400 flex flex-col items-center text-[9px] font-bold"><span className="text-base">🔔</span><span>الطلبات</span></button>
-                      <button onClick={() => setArtisanTab('jobs')} className="text-slate-400 flex flex-col items-center text-[9px] font-bold"><span className="text-base">🛠️</span><span>العمليات</span></button>
-                      <button onClick={() => setArtisanTab('profile')} className="text-orange-500 flex flex-col items-center text-[9px] font-bold"><span className="text-base">👤</span><span>حسابي</span></button>
+                      <button onClick={() => setArtisanTab('leads')} className={`flex flex-col items-center text-[9px] font-bold transition-all ${artisanTab === 'leads' ? 'text-orange-500 scale-105' : 'text-slate-400'}`}><span className="text-base">🔔</span><span>الطلبات</span></button>
+                      <button onClick={() => setArtisanTab('jobs')} className={`flex flex-col items-center text-[9px] font-bold transition-all ${artisanTab === 'jobs' ? 'text-orange-500 scale-105' : 'text-slate-400'}`}><span className="text-base">🛠️</span><span>العمليات</span></button>
+                      <button onClick={() => setArtisanTab('profile')} className={`flex flex-col items-center text-[9px] font-bold transition-all ${artisanTab === 'profile' ? 'text-orange-500 scale-105' : 'text-slate-400'}`}><span className="text-base">👤</span><span>حسابي</span></button>
                     </nav>
                   </div>
 

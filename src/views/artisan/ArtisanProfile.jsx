@@ -104,11 +104,11 @@ export const ArtisanProfile = () => {
 
         // جلب السحبيات السابقة
         const allWd = await db.withdrawals.getAll();
-        setWithdrawals(allWd.filter(w => w.artisanId === artProfile.id).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));
+        setWithdrawals((allWd || []).filter(w => w && w.artisanId === artProfile.id).sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0)));
 
         // جلب الشكاوى المسجلة ضده
         const allComplaints = await db.complaints.getAll();
-        setComplaints(allComplaints.filter(c => c.artisanId === artProfile.id).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+        setComplaints((allComplaints || []).filter(c => c && c.artisanId === artProfile.id).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)));
       }
     };
 
