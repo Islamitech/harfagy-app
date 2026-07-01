@@ -57,6 +57,11 @@ export const UserProvider = ({ children }) => {
         if (matchedUser.password && matchedUser.password !== password) {
           throw new Error(language === 'ar' ? '⚠️ كلمة المرور غير صحيحة.' : 'Incorrect password.');
         }
+        if (matchedUser.isBanned) {
+          throw new Error(language === 'ar' 
+            ? '🔴 عذراً، تم حظر هذا الحساب من المنصة لمخالفة شروط الاستخدام والسياسات الأمنية.' 
+            : '🔴 Sorry, this account has been blocked for violating platform policies.');
+        }
         setCurrentUser(matchedUser);
         showToast(
           language === 'ar' ? `مرحباً بك مجدداً، ${matchedUser.name}` : `Welcome back, ${matchedUser.name}`,
@@ -75,6 +80,15 @@ export const UserProvider = ({ children }) => {
   // دالة إنشاء حساب جديد (عميل / حرفي)
   const registerUser = async (userData) => {
     try {
+      // التحقق أولاً من عدم تكرار رقم الهاتف حياً في قاعدة البيانات
+      const allUsers = await db.users.getAll();
+      const duplicate = allUsers.find(u => u.phone === userData.phone);
+      if (duplicate) {
+        throw new Error(language === 'ar' 
+          ? '⚠️ عذراً، رقم الهاتف هذا مسجل بالفعل بالمنصة.' 
+          : '⚠️ This phone number is already registered.');
+      }
+
       const newUser = await db.users.create(userData);
       setCurrentUser(newUser);
       showToast(

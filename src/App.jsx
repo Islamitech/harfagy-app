@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from './context/AppContext.jsx';
 import { useUser } from './context/UserContext.jsx';
 import { ToastContainer } from './components/common/Toast.jsx';
@@ -24,6 +24,68 @@ import { PayoutsPortal } from './views/admin/PayoutsPortal.jsx';
 import { Button } from './components/common/Button.jsx';
 import { Input } from './components/common/Input.jsx';
 import { db } from './services/db.js';
+
+// سايدبار سجل الحركات العام المحدث تصاعدياً وبشكل حي
+function AuditLogsSidebar({ activeRole }) {
+  const [logs, setLogs] = useState([]);
+
+  useEffect(() => {
+    const fetchLogs = async () => {
+      const all = await db.getCollection('audit_logs');
+      // فرز تصاعدي (من الأقدم للأحدث كما طلب المستخدم)
+      const sorted = [...all].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+      setLogs(sorted);
+    };
+    fetchLogs();
+
+    const unsub = db.subscribe(() => {
+      fetchLogs();
+    });
+    return () => unsub();
+  }, []);
+
+  return (
+    <div className="w-80 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-3xl p-5 shadow-xl flex flex-col gap-4 max-h-[600px] overflow-y-auto hide-scrollbar text-right font-cairo">
+      <div>
+        <h3 className="text-xs font-extrabold text-slate-850 dark:text-brand-light">🔐 سجل الرقابة والعمليات الأمنية</h3>
+        <p className="text-[9px] text-slate-400 mt-0.5">رصد فوري لجميع حركات المشرفين والمديرين</p>
+      </div>
+
+      <div className="flex flex-col gap-3">
+        {logs.length > 0 ? (
+          logs.map(log => (
+            <div 
+              key={log.id} 
+              className="bg-slate-50 dark:bg-slate-950/30 p-3 rounded-2xl border border-slate-100 dark:border-slate-850 flex flex-col gap-1.5 text-[10px]"
+            >
+              <div className="flex justify-between items-center text-[8px]">
+                <span className={`px-2 py-0.5 rounded-md font-bold text-white ${
+                  log.adminRole === 'superadmin' ? 'bg-orange-500' : log.adminRole === 'auditor' ? 'bg-slate-900 dark:bg-slate-700' : 'bg-rose-600'
+                }`}>
+                  {log.adminRole === 'superadmin' ? 'مدير عام' : log.adminRole === 'auditor' ? 'مشرف مالي' : 'مشرف أمني'}
+                </span>
+                <span className="text-slate-400 font-mono">
+                  {new Date(log.timestamp).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+              <p className="text-slate-700 dark:text-slate-300 leading-relaxed font-semibold text-[9.5px]">
+                {log.details}
+              </p>
+              <div className="flex justify-between items-center text-[8px] text-slate-400 border-t border-slate-100/50 dark:border-slate-850 pt-1.5 font-mono">
+                <span>IP: {log.ip || '192.168.1.45'}</span>
+                <span>ID: {log.targetUserId ? log.targetUserId.substring(0, 5) : 'System'}</span>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="text-center py-8 text-slate-400 text-[10px] font-bold">
+            لا توجد حركات أمنية مسجلة حالياً.
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 /**
  * منظم جذر تطبيق منصة حرفجي PWA - واجهة عصرية عازلة للمستثمرين
@@ -493,32 +555,37 @@ export default function App() {
 
                 </div>
               ) : (
-                /* لوحة التحكم الإدارية المتسعة للكمبيوتر */
-                <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-3xl p-6 shadow-xl flex-1">
-                  
-                  {/* شريط تبويبات المشرفين المنظم بالرتب المحددة */}
-                  <div className="flex justify-around border-b border-slate-100 dark:border-slate-800 pb-4 mb-4 text-xs font-black text-slate-400">
-                    {adminTabs.map(tab => (
-                      <button 
-                        key={tab.id}
-                        onClick={() => setAdminTab(tab.id)} 
-                        className={activeAdminTab === tab.id ? 'text-orange-500 border-b-2 border-orange-500 pb-4 -mb-4.5 font-black scale-105' : ''}
-                      >
-                        {tab.label}
-                      </button>
-                    ))}
+                /* لوحة التحكم الإدارية المتسعة للكمبيوتر مع سايدبار سجل العمليات */
+                <div className="flex flex-col lg:flex-row gap-6 w-full items-start max-w-6xl mx-auto py-4">
+                  <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-3xl p-6 shadow-xl flex-1 w-full">
+                    
+                    {/* شريط تبويبات المشرفين المنظم بالرتب المحددة */}
+                    <div className="flex justify-around border-b border-slate-100 dark:border-slate-800 pb-4 mb-4 text-xs font-black text-slate-400">
+                      {adminTabs.map(tab => (
+                        <button 
+                          key={tab.id}
+                          onClick={() => setAdminTab(tab.id)} 
+                          className={activeAdminTab === tab.id ? 'text-orange-500 border-b-2 border-orange-500 pb-4 -mb-4.5 font-black scale-105' : ''}
+                        >
+                          {tab.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* رندر محتوى التبويب الإداري */}
+                    {activeAdminTab === 'analytics' && <AdminDashboard activeRole={adminRole} />}
+                    {activeAdminTab === 'users' && <MasterDirectory activeRole={adminRole} />}
+                    {activeAdminTab === 'verify' && <VerificationPortal activeRole={adminRole} />}
+                    {activeAdminTab === 'disputes' && <DisputeDesk activeRole={adminRole} />}
+                    {activeAdminTab === 'payouts' && <PayoutsPortal activeRole={adminRole} />}
+                    {activeAdminTab === 'categories' && <CategorySettings activeRole={adminRole} />}
+
+                    {/* تسجيل خروج المشرف */}
+                    <Button variant="danger" className="w-full mt-6 text-xs font-bold" onClick={logout}>🚪 تسجيل الخروج من إدارة النظام</Button>
                   </div>
 
-                  {/* رندر محتوى التبويب الإداري */}
-                  {activeAdminTab === 'analytics' && <AdminDashboard activeRole={adminRole} />}
-                  {activeAdminTab === 'users' && <MasterDirectory activeRole={adminRole} />}
-                  {activeAdminTab === 'verify' && <VerificationPortal activeRole={adminRole} />}
-                  {activeAdminTab === 'disputes' && <DisputeDesk activeRole={adminRole} />}
-                  {activeAdminTab === 'payouts' && <PayoutsPortal activeRole={adminRole} />}
-                  {activeAdminTab === 'categories' && <CategorySettings activeRole={adminRole} />}
-
-                  {/* تسجيل خروج المشرف */}
-                  <Button variant="danger" className="w-full mt-6 text-xs font-bold" onClick={logout}>🚪 تسجيل الخروج من إدارة النظام</Button>
+                  {/* سايدبار رصد الحركات الأمنية الفوري */}
+                  <AuditLogsSidebar activeRole={adminRole} />
                 </div>
               )}
 

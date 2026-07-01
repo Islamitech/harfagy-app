@@ -57,6 +57,9 @@ export const CustomerHome = ({ onSelectJobTrack }) => {
 
   // فلترة الفنيين النشطين والمعتمدين جغرافيا وحسب الفئة والبحث
   const filteredArtisans = artisans.filter(art => {
+    // 0. يجب عرض الفنيين الموثقين والمعتمدين فقط
+    if (!art.verified) return false;
+
     // 1. الفئة
     if (selectedCategory !== 'all' && art.category !== selectedCategory) return false;
     
@@ -66,7 +69,6 @@ export const CustomerHome = ({ onSelectJobTrack }) => {
     if (!matchesSearch) return false;
 
     // 3. فلترة جغرافية (محاكاة جلب موقع الفني المرتبط بالمستخدم)
-    // الفنيين المسجلين بالسيستم لديهم تفضيل أو موقع مرتبط بـ Hadayek Al Ahram
     if (district !== 'الكل' && art.id === 'art-4' && district !== 'الهرم') return false; // سيد النجار بالهرم
     if (district !== 'الكل' && ['art-1', 'art-2', 'art-3'].includes(art.id) && district !== 'حدائق الأهرام') return false;
     

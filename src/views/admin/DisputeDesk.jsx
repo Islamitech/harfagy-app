@@ -37,6 +37,7 @@ export const DisputeDesk = ({ activeRole = 'superadmin' }) => {
   };
 
   // تسوية النزاع وحله
+  // تسوية النزاع وحله
   const resolveDispute = async (comp, decision) => {
     if (activeRole === 'auditor') {
       showToast(
@@ -48,29 +49,52 @@ export const DisputeDesk = ({ activeRole = 'superadmin' }) => {
 
     const text = resolutionText[comp.id] || 'تمت التسوية ودياً بواسطة إدارة حرفجي.';
     try {
-      if (decision === 'compensate') {
-        // تعويض العميل كاملاً وحظر محفظة الفني
-        // 1. استرجاع أتعاب المعاينة لعمولة العميل
+      if (decision === 'ban') {
+        // 1. حظر حساب الحرفي وتصفير محفظته
+        const artisan = await db.artisans.get(comp.artisanId);
+        if (artisan) {
+          await db.users.update(artisan.userId, { isBanned: true });
+          await db.artisans.update(artisan.id, { wallet: 0, commissionDue: 0 });
+        }
+
+        await db.complaints.update(comp.id, {
+          resolution: `قرار الإدارة: حظر حساب الفني وتجميد أرصدته بالكامل. السبب: ${text}`,
+          status: 'resolved'
+        });
+
+        // تسجيل الحركة في سجل التدقيق الأمني
+        await db.addDocument('audit_logs', {
+          adminId: 'usr-admin',
+          adminRole: activeRole,
+          action: 'ban_artisan_dispute',
+          targetUserId: comp.artisanId,
+          targetUserName: comp.artisanName,
+          ip: '192.168.1.45',
+          details: `🔴 حظر حساب الفني ${comp.artisanName} وتجميد محفظته نهائياً بسبب النزاع #${comp.jobId.substring(0, 6)}. السبب: ${text}`,
+          timestamp: new Date().toISOString()
+        });
+
+        showToast(language === 'ar' ? '🔴 تم حظر حساب الفني وتجميد محفظته فوراً!' : 'Artisan blocked and wallet frozen!', 'success');
+      } else if (decision === 'compensate') {
+        // تعويض العميل كاملاً وخصمها من الفني
         const usersList = await db.getCollection("users");
         const customer = usersList.find(u => u.id === comp.customerId);
         if (customer) {
           await db.users.update(customer.id, { wallet: (customer.wallet || 0) + 100 });
         }
-        // 2. تجميد محفظة الفني كعقوبة رادعة
+        
         const artisan = await db.artisans.get(comp.artisanId);
         if (artisan) {
           await db.artisans.update(artisan.id, { wallet: Math.max(0, artisan.wallet - 150) });
         }
         
         await db.complaints.update(comp.id, {
-          resolution: `قرار التسوية: تعويض العميل بمبلغ 100 ج.م وخصمها من الفني المخالف. السبب: ${text}`,
+          resolution: `قرار التسوية: تعويض العميل بمبلغ 100 ج.م وخصمها من الفني. السبب: ${text}`,
           status: 'resolved'
         });
 
-        // 3. تحديث حالة الطلب
         await db.jobs.update(comp.jobId, { status: 'completed' });
 
-        // 4. تسجيل العملية في سجل التدقيق الأمني (Audit Logs)
         await db.addDocument('audit_logs', {
           adminId: 'usr-admin',
           adminRole: activeRole,
@@ -78,13 +102,34 @@ export const DisputeDesk = ({ activeRole = 'superadmin' }) => {
           targetUserId: comp.customerId,
           targetUserName: comp.customerName,
           ip: '192.168.1.45',
-          details: `تعويض العميل ${comp.customerName} بـ 100 ج.م وخصم 150 ج.م من الفني ${comp.artisanName} لتسوية النزاع #${comp.jobId.substring(0,6)}. السبب: ${text}`,
+          details: `⚖️ تعويض العميل ${comp.customerName} بمبلغ 100 ج.م وخصمه من الفني ${comp.artisanName}. السبب: ${text}`,
           timestamp: new Date().toISOString()
         });
 
-        showToast(language === 'ar' ? '⚖️ تم تعويض العميل بنجاح وخصم المستحقات من الفني!' : 'Customer compensated successfully!', 'success');
+        showToast(language === 'ar' ? '⚖️ تم تعويض العميل وخصم المبلغ من الحرفي.' : 'Customer compensated successfully!', 'success');
+      } else if (decision === 'amicable') {
+        // تسوية ودية والتراضي
+        await db.complaints.update(comp.id, {
+          resolution: `تسوية ودية وتراضي بين الطرفين. السبب: ${text}`,
+          status: 'resolved'
+        });
+
+        await db.jobs.update(comp.jobId, { status: 'completed' });
+
+        await db.addDocument('audit_logs', {
+          adminId: 'usr-admin',
+          adminRole: activeRole,
+          action: 'resolve_dispute_amicable',
+          targetUserId: comp.customerId,
+          targetUserName: comp.customerName,
+          ip: '192.168.1.45',
+          details: `🤝 تسوية ودية وتراضي في نزاع العميل ${comp.customerName} والفني ${comp.artisanName}. السبب: ${text}`,
+          timestamp: new Date().toISOString()
+        });
+
+        showToast(language === 'ar' ? '🤝 تم إنهاء النزاع بالتراضي والحل الودي.' : 'Dispute resolved amicably!', 'success');
       } else {
-        // رفض الشكوى وإقرار حق الحرفي
+        // رفض الشكوى وإقرار حق الفني
         await db.complaints.update(comp.id, {
           resolution: `قرار التسوية: رفض شكوى العميل واعتماد أجر الفني كاملاً. السبب: ${text}`,
           status: 'resolved'
@@ -92,7 +137,6 @@ export const DisputeDesk = ({ activeRole = 'superadmin' }) => {
 
         await db.jobs.update(comp.jobId, { status: 'completed' });
 
-        // تسجيل العملية في سجل التدقيق الأمني (Audit Logs)
         await db.addDocument('audit_logs', {
           adminId: 'usr-admin',
           adminRole: activeRole,
@@ -100,11 +144,11 @@ export const DisputeDesk = ({ activeRole = 'superadmin' }) => {
           targetUserId: comp.artisanId,
           targetUserName: comp.artisanName,
           ip: '192.168.1.45',
-          details: `رفض شكوى العميل وتبرئة الأسطى ${comp.artisanName} للطلب #${comp.jobId.substring(0,6)}. السبب: ${text}`,
+          details: `🟢 رفض شكوى العميل واعتماد صحة موقف الأسطى ${comp.artisanName}. السبب: ${text}`,
           timestamp: new Date().toISOString()
         });
 
-        showToast(language === 'ar' ? '⚖️ تم رفض الشكوى واعتماد صحة موقف الأسطى!' : 'Complaint rejected, artisan cleared!', 'info');
+        showToast(language === 'ar' ? '🟢 تم رفض الشكوى وإغلاق الملف.' : 'Complaint closed, artisan cleared.', 'info');
       }
     } catch (err) {
       console.error(err);
@@ -172,19 +216,31 @@ export const DisputeDesk = ({ activeRole = 'superadmin' }) => {
                 />
               </div>
 
-              <div className="flex gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
                 <Button 
                   variant="outline" 
-                  className="flex-1 text-[10px]"
+                  className="flex-1 text-[9px] min-w-[120px]"
                   onClick={() => resolveDispute(comp, 'reject')}
                 >
-                  رفض الشكوى وإقرار حق الفني
+                  🟢 رفض الشكوى وتبرئة الفني
                 </Button>
                 <Button 
-                  className="flex-1 bg-brand-rose border-brand-rose text-[10px]"
+                  className="flex-1 bg-amber-500 border-amber-500 text-white text-[9px] min-w-[120px]"
+                  onClick={() => resolveDispute(comp, 'amicable')}
+                >
+                  🤝 تسوية ودية وتراضي
+                </Button>
+                <Button 
+                  className="flex-1 bg-blue-600 border-blue-600 text-white text-[9px] min-w-[120px]"
                   onClick={() => resolveDispute(comp, 'compensate')}
                 >
-                  تعويض العميل وحظر الفني ⚖️
+                  ⚖️ تعويض العميل
+                </Button>
+                <Button 
+                  className="flex-1 bg-red-650 border-red-650 text-white text-[9px] min-w-[120px]"
+                  onClick={() => resolveDispute(comp, 'ban')}
+                >
+                  🔴 حظر حساب الفني
                 </Button>
               </div>
 

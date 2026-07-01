@@ -36,27 +36,38 @@ export const PayoutsPortal = ({ activeRole = 'superadmin' }) => {
     }
 
     try {
-      // 1. تحديث حالة السحب
-      await db.withdrawals.update(wd.id, { status: 'completed' });
+      // 1. تحديث حالة السحب في قاعدة البيانات إلى success
+      await db.withdrawals.update(wd.id, { status: 'success' });
 
-      // 2. تسجيل العملية في سجل التدقيق الأمني (Audit Logs)
+      // 2. خصم المبلغ من محفظة الحرفي المعني حياً وتصفير مديونيته
+      const artisan = await db.artisans.get(wd.artisanId);
+      if (artisan) {
+        const nextWallet = Math.max(0, (artisan.wallet || 0) - Number(wd.amount));
+        await db.artisans.update(artisan.id, { 
+          wallet: nextWallet,
+          commissionDue: 0 // تصفير مديونيته
+        });
+      }
+
+      // 3. تسجيل العملية في سجل التدقيق الأمني (Audit Logs)
       await db.addDocument('audit_logs', {
         adminId: 'usr-admin',
         adminRole: activeRole,
         action: 'approve_payout',
         targetUserId: wd.artisanId,
-        targetUserName: `حرفي معرّف #${wd.artisanId.substring(0, 5)}`,
+        targetUserName: artisan ? artisan.name : `حرفي #${wd.artisanId.substring(0, 5)}`,
         ip: '192.168.1.45',
-        details: `الموافقة على تحويل مبلغ ${wd.amount} ج.م للفني عبر ${wd.method} (${wd.details}).`,
+        details: `💸 اعتماد تحويل مبلغ ${wd.amount} ج.م للفني ${artisan ? artisan.name : wd.artisanId}، وخصمه من محفظته وتصفير مديونيته بالكامل.`,
         timestamp: new Date().toISOString()
       });
 
       showToast(
-        language === 'ar' ? `💸 تم اعتماد تحويل مبلغ ${formatCurrency(wd.amount)} للحرفي بنجاح!` : `Payout of ${wd.amount} approved successfully!`,
+        language === 'ar' ? `💸 تم اعتماد تحويل مبلغ ${formatCurrency(wd.amount)} للحرفي وتصفير مديونيته بنجاح!` : `Payout of ${wd.amount} approved and debt cleared successfully!`,
         'success'
       );
     } catch (err) {
       console.error(err);
+      showToast(language === 'ar' ? 'حدث خطأ أثناء اعتماد السحب.' : 'Error approving payout.', 'error');
     }
   };
 
