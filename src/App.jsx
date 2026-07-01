@@ -543,7 +543,9 @@ export default function App() {
                         <span>📱 هاتف الحرفي: {currentUser && currentUser.role === 'artisan' ? currentUser.name : 'شريف رفعت'} ({currentUser && currentUser.role === 'artisan' ? currentUser.custom_id : 'AT-0202'})</span>
                         <span>⚡ صيانة الأعطال</span>
                       </div>
-                      <ArtisanProfile />
+                      {artisanTab === 'leads' && <IncomingLeads onAcceptSuccess={() => setArtisanTab('jobs')} />}
+                      {artisanTab === 'jobs' && <ActiveJobs />}
+                      {artisanTab === 'profile' && <ArtisanProfile />}
                     </div>
 
                     <nav className="absolute bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-900/90 border-t border-slate-100 dark:border-slate-800 py-2.5 px-3 flex justify-around items-center z-10 shadow-lg">

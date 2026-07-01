@@ -41,42 +41,66 @@ export const ArtisanProfile = () => {
   const [feeshFile, setFeeshFile] = useState(null);
   const [uploadLoading, setUploadLoading] = useState(false);
 
+  const [associatedUser, setAssociatedUser] = useState(null);
+
   useEffect(() => {
     if (!currentUser) return;
 
     const fetchAllArtisanData = async () => {
       const artisansList = await db.getCollection("artisans");
-      const isUserAdmin = ['superadmin', 'admin', 'auditor', 'security'].includes(currentUser.role);
-      let artProfile = artisansList.find(a => a.userId === (isUserAdmin ? 'art-1-user' : currentUser.id));
+      const isArtisan = currentUser.role === 'artisan';
+      let artProfile = artisansList.find(a => a.userId === (isArtisan ? currentUser.id : 'art-1-user'));
       
-      // حل فوري ذكي لمنع تعليق شاشة التحميل للحرفيين المسجلين حديثاً
       if (!artProfile) {
-        const catAbbr = currentUser.category === 'plumber' ? 'AS' 
-                      : currentUser.category === 'electrician' ? 'AK' 
-                      : currentUser.category === 'hvac' ? 'AT' 
-                      : currentUser.category === 'carpenter' ? 'AN' 
-                      : currentUser.category === 'painter' ? 'AD' 
-                      : 'AH';
-        artProfile = {
-          id: `art-${currentUser.id}`,
-          userId: currentUser.id,
-          name: currentUser.name,
-          category: currentUser.category || 'plumber',
-          custom_id: currentUser.custom_id || `${catAbbr}-0001`,
-          bio: 'عضو مسجل جديد في دليل حدائق الأهرام صيانة وتسريبات.',
-          rating: 5.0,
-          completedJobs: 0,
-          wallet: 0,
-          commissionDue: 0,
-          isOnline: true,
-          verified: false,
-          rank: 'bronze'
-        };
+        if (!isArtisan) {
+          artProfile = {
+            id: 'art-1',
+            userId: 'art-1-user',
+            name: 'شريف رفعت',
+            category: 'hvac',
+            custom_id: 'AT-0202',
+            bio: 'خبرة 15 عاماً في صيانة شبكات التكييف والتبريد بحدائق الأهرام وحل مشاكل الفريون.',
+            rating: 4.8,
+            completedJobs: 142,
+            wallet: 3200,
+            commissionDue: 480,
+            isOnline: true,
+            verified: true,
+            rank: 'golden'
+          };
+        } else {
+          const catAbbr = currentUser.category === 'plumber' ? 'AS' 
+                        : currentUser.category === 'electrician' ? 'AK' 
+                        : currentUser.category === 'hvac' ? 'AT' 
+                        : currentUser.category === 'carpenter' ? 'AN' 
+                        : currentUser.category === 'painter' ? 'AD' 
+                        : 'AH';
+          artProfile = {
+            id: `art-${currentUser.id}`,
+            userId: currentUser.id,
+            name: currentUser.name,
+            category: currentUser.category || 'plumber',
+            custom_id: currentUser.custom_id || `${catAbbr}-0001`,
+            bio: 'عضو مسجل جديد في دليل حدائق الأهرام صيانة وتسريبات.',
+            rating: 5.0,
+            completedJobs: 0,
+            wallet: 0,
+            commissionDue: 0,
+            isOnline: true,
+            verified: false,
+            rank: 'bronze'
+          };
+        }
         await db.addDocument("artisans", artProfile);
       }
 
       if (artProfile) {
         setArtisan(artProfile);
+
+        // جلب حساب المستخدم المرتبط بالفني لعرض الهاتف والحي الجغرافي الصحيح للفني المعروض
+        const usersList = await db.getCollection("users");
+        const usr = usersList.find(u => u.id === artProfile.userId);
+        if (usr) setAssociatedUser(usr);
 
         // جلب السحبيات السابقة
         const allWd = await db.withdrawals.getAll();
@@ -409,11 +433,13 @@ export const ArtisanProfile = () => {
             </div>
             <div className="flex justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5">
               <span className="text-slate-450 font-bold">رقم الهاتف الجاري</span>
-              <strong className="text-slate-800 dark:text-brand-light">{currentUser.phone}</strong>
+              <strong className="text-slate-800 dark:text-brand-light">{associatedUser ? associatedUser.phone : currentUser.phone}</strong>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-455 font-bold">النطاق والحي الجغرافي</span>
-              <strong className="text-slate-800 dark:text-brand-light">{currentUser.governorate} - {currentUser.district}</strong>
+              <strong className="text-slate-800 dark:text-brand-light">
+                {associatedUser ? `${associatedUser.governorate} - ${associatedUser.district}` : `${currentUser.governorate} - ${currentUser.district}`}
+              </strong>
             </div>
           </div>
 
