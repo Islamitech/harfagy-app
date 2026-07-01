@@ -47,13 +47,16 @@ export const UserProvider = ({ children }) => {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  // دالة تسجيل الدخول بمحاكاة مطابقة رقم الهاتف والرتبة
-  const login = async (phone, role) => {
+  // دالة تسجيل الدخول بمحاكاة مطابقة رقم الهاتف والرتبة وكلمة المرور
+  const login = async (phone, password, role) => {
     try {
       const usersList = await db.users.getAll();
       const matchedUser = usersList.find(u => u.phone === phone && u.role === role);
       
       if (matchedUser) {
+        if (matchedUser.password && matchedUser.password !== password) {
+          throw new Error(language === 'ar' ? '⚠️ كلمة المرور غير صحيحة.' : 'Incorrect password.');
+        }
         setCurrentUser(matchedUser);
         showToast(
           language === 'ar' ? `مرحباً بك مجدداً، ${matchedUser.name}` : `Welcome back, ${matchedUser.name}`,

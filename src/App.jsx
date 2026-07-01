@@ -43,6 +43,7 @@ export default function App() {
 
   // نموذج الدخول والإنشاء
   const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
   const [role, setRole] = useState('customer');
   const [name, setName] = useState('');
   const [category, setCategory] = useState('plumber');
@@ -52,12 +53,16 @@ export default function App() {
   const handleAuth = async (e) => {
     e.preventDefault();
     if (phone === 'AEAdmin') {
+      if (password !== 'Aa132456') {
+        alert("⚠️ كلمة المرور غير صحيحة لحساب المدير العام.");
+        return;
+      }
       const adminUser = {
         id: 'admin-system',
-        name: 'أ. محمد',
+        name: 'أحمد عزالدين',
         phone: 'AEAdmin',
         role: 'superadmin',
-        governorate: 'القاهرة',
+        governorate: 'الجيزة',
         district: 'حدائق الأهرام',
         wallet: 0,
         custom_id: 'MG-0303'
@@ -68,13 +73,14 @@ export default function App() {
     }
 
     if (isRegistering) {
-      if (!name || !phone) {
-        alert("يرجى إدخال البيانات كاملة.");
+      if (!name || !phone || !password) {
+        alert("يرجى إدخال البيانات كاملة بما في ذلك كلمة المرور.");
         return;
       }
       const newUser = {
         name,
         phone,
+        password,
         role: role === 'artisan' ? 'artisan' : 'customer',
         category: role === 'artisan' ? category : undefined,
         governorate: 'الجيزة',
@@ -103,7 +109,7 @@ export default function App() {
         await db.addDocument("artisans", newArtisan);
       }
     } else {
-      await login(phone, role);
+      await login(phone, password, role);
     }
   };
 
@@ -205,6 +211,15 @@ export default function App() {
                 placeholder="01011223344"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
+              />
+
+              <Input 
+                label="كلمة المرور"
+                type="password"
+                required
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
               />
 
               {!isRegistering && phone !== 'AEAdmin' && (
