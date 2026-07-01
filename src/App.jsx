@@ -155,7 +155,7 @@ export default function App() {
           {/* شريط الإعدادات العلوي للبوابة */}
           <header className="px-6 py-4 flex items-center justify-between z-10">
             <div className="flex items-center gap-2">
-              <img src="/assets/icon-192.png" alt="logo" className="w-9 h-9 object-contain" />
+              <img src="/assets/icon-192.png" alt="logo" className="w-12 h-12 object-contain" />
               <strong className="text-lg font-black text-orange-500 tracking-wide">حَرفَجي</strong>
               <span className="hidden sm:inline-block text-[10px] text-emerald-500 bg-emerald-500/10 px-2.5 py-1 rounded-full font-bold shadow-sm">بوابة الخدمات الآمنة 📍</span>
             </div>
@@ -178,7 +178,7 @@ export default function App() {
           {/* الدخول الفردي المباشر */}
           <main className="max-w-md mx-auto py-8 px-4 flex flex-col gap-6 w-full justify-center flex-1 z-10">
             <div className="text-center flex flex-col items-center gap-3">
-              <img src="/assets/icon-192.png" alt="logo" className="w-24 h-24 object-contain drop-shadow-md hover:scale-105 transition-transform duration-300 mb-1" />
+              <img src="/assets/icon-192.png" alt="logo" className="w-36 h-36 object-contain drop-shadow-md hover:scale-105 transition-transform duration-300 mb-1" />
               <div>
                 <h1 className="text-2xl font-black text-slate-900 dark:text-brand-light">منصة حرفجي للخدمات المنزلية</h1>
                 <p className="text-xs text-slate-450 dark:text-slate-400 mt-2">تسجيل دخول آمن وتصفح الدليل المهني المعتمد بمصر</p>
@@ -305,9 +305,9 @@ export default function App() {
 
                 {/* ترويسة هاتف العميل */}
                 <div className="pt-8 flex-1 overflow-y-auto pb-16 hide-scrollbar bg-slate-50 dark:bg-[#0b0f19]">
-                  <div className="bg-white dark:bg-slate-900 border-b border-slate-200/50 dark:border-slate-800/80 px-4 py-2.5 text-[11px] font-black flex justify-between items-center sticky top-0 z-15 shadow-sm text-slate-800 dark:text-brand-light">
+                  <div className="bg-white dark:bg-slate-900 border-b border-slate-200/50 dark:border-slate-800/80 px-4 py-2 text-[11px] font-black flex justify-between items-center sticky top-0 z-15 shadow-sm text-slate-800 dark:text-brand-light">
                     <span className="flex items-center gap-2">
-                      <img src="/assets/icon-192.png" alt="logo" className="w-7 h-7 object-contain drop-shadow-sm" />
+                      <img src="/assets/icon-192.png" alt="logo" className="w-10 h-10 object-contain drop-shadow-sm" />
                       <span>{currentUser.name} ({currentUser.custom_id || 'U-0101'})</span>
                     </span>
                     <span className="text-[10px] text-orange-500">📍 حدائق الأهرام</span>
@@ -364,9 +364,9 @@ export default function App() {
 
                 {/* ترويسة هاتف الحرفي */}
                 <div className="pt-8 flex-1 overflow-y-auto pb-16 hide-scrollbar bg-slate-50 dark:bg-[#0b0f19]">
-                  <div className="bg-white dark:bg-slate-900 border-b border-slate-200/50 dark:border-slate-800/80 px-4 py-2.5 text-[11px] font-black flex justify-between items-center sticky top-0 z-15 shadow-sm text-slate-800 dark:text-brand-light">
+                  <div className="bg-white dark:bg-slate-900 border-b border-slate-200/50 dark:border-slate-800/80 px-4 py-2 text-[11px] font-black flex justify-between items-center sticky top-0 z-15 shadow-sm text-slate-800 dark:text-brand-light">
                     <span className="flex items-center gap-2">
-                      <img src="/assets/icon-192.png" alt="logo" className="w-7 h-7 object-contain drop-shadow-sm" />
+                      <img src="/assets/icon-192.png" alt="logo" className="w-10 h-10 object-contain drop-shadow-sm" />
                       <span>{currentUser.name}</span>
                     </span>
                     <span className="text-[10px] text-orange-500 font-bold bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">{currentUser.custom_id || 'AT-0202'}</span>
