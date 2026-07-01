@@ -99,7 +99,7 @@ export const CustomerHome = ({ onSelectJobTrack }) => {
   useEffect(() => {
     const fetchArtisans = async () => {
       const list = await db.artisans.getAll();
-      setArtisans(list);
+      setArtisans(list || []);
     };
     fetchArtisans();
     
@@ -118,16 +118,16 @@ export const CustomerHome = ({ onSelectJobTrack }) => {
   };
 
   // فلترة الفنيين النشطين والمعتمدين جغرافيا وحسب الفئة والبحث
-  const filteredArtisans = artisans.filter(art => {
+  const filteredArtisans = (artisans || []).filter(art => {
     // 0. يجب عرض الفنيين الموثقين والمعتمدين فقط
-    if (!art.verified) return false;
+    if (!art || !art.verified) return false;
 
     // 1. الفئة
     if (selectedCategory !== 'all' && art.category !== selectedCategory) return false;
     
     // 2. البحث النصي
     const q = searchQuery.toLowerCase();
-    const matchesSearch = art.name.toLowerCase().includes(q) || art.bio.toLowerCase().includes(q);
+    const matchesSearch = (art.name || '').toLowerCase().includes(q) || (art.bio || '').toLowerCase().includes(q);
     if (!matchesSearch) return false;
 
     // 3. فلترة جغرافية (محاكاة جلب موقع الفني المرتبط بالمستخدم)
@@ -143,7 +143,7 @@ export const CustomerHome = ({ onSelectJobTrack }) => {
   };
 
   if (activePendingJob) {
-    const matchingOnlineCount = artisans.filter(a => a.category === activePendingJob.category && a.isOnline).length;
+    const matchingOnlineCount = (artisans || []).filter(a => a && a.category === activePendingJob.category && a.isOnline).length;
 
     return (
       <div className="flex-1 flex flex-col items-center justify-center py-16 px-6 bg-slate-50 dark:bg-[#0b0f19] text-center font-cairo h-full min-h-[500px]" style={{ direction: language === 'ar' ? 'rtl' : 'ltr' }}>
