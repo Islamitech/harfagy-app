@@ -73,6 +73,19 @@ class DualModeDatabase {
         localStorage.setItem(dbKey, JSON.stringify(SEED_DATA[key]));
       }
     }
+
+    // تنظيف البيانات الملوثة أو التجريبية القديمة لاسم المسؤول من قائمة الطلبات
+    try {
+      const jobsKey = 'harfagy_db_jobs';
+      const jobsVal = localStorage.getItem(jobsKey);
+      if (jobsVal) {
+        const jobs = JSON.parse(jobsVal);
+        const cleanedJobs = jobs.filter(j => j.customerName !== 'أحمد عزالدين' && j.customerPhone !== 'AEAdmin' && j.customerId !== 'admin-system');
+        localStorage.setItem(jobsKey, JSON.stringify(cleanedJobs));
+      }
+    } catch (e) {
+      console.error("Cleanup failed", e);
+    }
   }
 
   // Get Supabase active status
