@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useUser } from '../../context/UserContext.jsx';
 import { useApp } from '../../context/AppContext.jsx';
 import { db } from '../../services/db.js';
@@ -11,20 +11,40 @@ export const CustomerProfile = () => {
   const { currentUser, logout, login } = useUser();
   const { language, showToast } = useApp();
 
-  if (!currentUser) return null;
+  const [customerUser, setCustomerUser] = useState(currentUser);
 
-  const showEmailAlert = currentUser.emailVerified === 'pending';
-  const showWhatsAppAlert = currentUser.phoneVerified === 'pending';
+  useEffect(() => {
+    if (!currentUser) return;
+    const fetchUser = async () => {
+      const isCustomer = currentUser.role === 'customer';
+      if (isCustomer) {
+        setCustomerUser(currentUser);
+      } else {
+        const usersList = await db.getCollection("users");
+        const clientAcc = usersList.find(u => u.id === 'cust-1');
+        if (clientAcc) setCustomerUser(clientAcc);
+      }
+    };
+    fetchUser();
+    const unsub = db.subscribe(fetchUser);
+    return () => unsub();
+  }, [currentUser]);
+
+  if (!customerUser) return null;
+
+  const showEmailAlert = customerUser.emailVerified === 'pending';
+  const showWhatsAppAlert = customerUser.phoneVerified === 'pending';
 
   // معالجة توثيق البريد الإلكتروني
   const verifyEmail = async () => {
     alert("📧 تم إرسال رمز تأكيد مكون من 6 أرقام إلى بريدك الإلكتروني.");
     const code = prompt("يرجى إدخال رمز التأكيد لتفعيل البريد (أدخل أي أرقام للمحاكاة):");
     if (code) {
-      const updatedUser = await db.users.update(currentUser.id, { emailVerified: 'verified' });
+      const updatedUser = await db.users.update(customerUser.id, { emailVerified: 'verified' });
       if (updatedUser) {
-        // تحديث جلسة المستخدم النشطة محلياً
-        localStorage.setItem('harfagy_current_user', JSON.stringify(updatedUser));
+        if (currentUser.role === 'customer') {
+          localStorage.setItem('harfagy_current_user', JSON.stringify(updatedUser));
+        }
         showToast(
           language === 'ar' ? '🎉 تم تفعيل البريد الإلكتروني بنجاح!' : 'Email verified successfully!',
           'success'
@@ -39,9 +59,11 @@ export const CustomerProfile = () => {
     alert("🟢 تم إرسال رمز تأكيد الواتساب إلى رقم هاتفك المسجل.");
     const code = prompt("يرجى إدخال رمز التأكيد لتفعيل الواتساب (أدخل أي أرقام للمحاكاة):");
     if (code) {
-      const updatedUser = await db.users.update(currentUser.id, { phoneVerified: 'verified' });
+      const updatedUser = await db.users.update(customerUser.id, { phoneVerified: 'verified' });
       if (updatedUser) {
-        localStorage.setItem('harfagy_current_user', JSON.stringify(updatedUser));
+        if (currentUser.role === 'customer') {
+          localStorage.setItem('harfagy_current_user', JSON.stringify(updatedUser));
+        }
         showToast(
           language === 'ar' ? '🎉 تم ربط وتوثيق حساب الواتساب بنجاح!' : 'WhatsApp verified successfully!',
           'success'
@@ -109,8 +131,8 @@ export const CustomerProfile = () => {
         <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 border-2 border-brand-orange flex items-center justify-center text-3xl mb-3 shadow-inner">
           👤
         </div>
-        <h3 className="text-sm font-extrabold text-brand-navy dark:text-brand-light">{currentUser.name}</h3>
-        <span className="text-[10px] font-bold text-slate-450 dark:text-slate-400 block mt-1">الهوية الرقمية: {currentUser.custom_id || 'U-0101'}</span>
+        <h3 className="text-sm font-extrabold text-brand-navy dark:text-brand-light">{customerUser.name}</h3>
+        <span className="text-[10px] font-bold text-slate-450 dark:text-slate-400 block mt-1">الهوية الرقمية: {customerUser.custom_id || 'U-0101'}</span>
         <span className="text-[10px] font-bold text-brand-orange bg-orange-500/10 px-2.5 py-0.5 rounded-full mt-1.5">عميل موثق 🛡️</span>
       </div>
 
@@ -118,30 +140,30 @@ export const CustomerProfile = () => {
       <div className="bg-white dark:bg-brand-slate border border-slate-200 dark:border-slate-800 p-4 rounded-3xl shadow-sm flex flex-col gap-3 text-xs">
         <div className="flex justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5">
           <span className="text-slate-400 font-bold">رقم الهاتف</span>
-          <strong className="text-brand-navy dark:text-brand-light">{currentUser.phone}</strong>
+          <strong className="text-brand-navy dark:text-brand-light">{customerUser.phone}</strong>
         </div>
         <div className="flex justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5">
           <span className="text-slate-400 font-bold">البريد الإلكتروني</span>
-          <strong className="text-brand-navy dark:text-brand-light">{currentUser.email || 'غير مسجل'}</strong>
+          <strong className="text-brand-navy dark:text-brand-light">{customerUser.email || 'غير مسجل'}</strong>
         </div>
         <div className="flex justify-between">
           <span className="text-slate-400 font-bold">المنطقة الجغرافية</span>
-          <strong className="text-brand-navy dark:text-brand-light">{currentUser.governorate} - {currentUser.district}</strong>
+          <strong className="text-brand-navy dark:text-brand-light">{customerUser.governorate} - {customerUser.district}</strong>
         </div>
       </div>
 
       {/* كارت المحفظة المالية */}
       <div className="bg-gradient-to-tr from-brand-navy to-slate-800 text-white p-5 rounded-3xl text-center shadow-lg">
         <span className="text-[10px] tracking-wider opacity-85 block uppercase font-bold">رصيد المحفظة النشط</span>
-        <h2 className="text-2xl font-black text-brand-orange my-2">{currentUser.wallet || 0} ج.م</h2>
+        <h2 className="text-2xl font-black text-brand-orange my-2">{customerUser.wallet || 0} ج.م</h2>
         <p className="text-[9px] opacity-70">سيتم خصم رسوم الكشوف القادمة من رصيدك تلقائياً.</p>
       </div>
 
       {/* برنامج الإحالات والتسويق */}
       <div className="bg-white dark:bg-brand-slate border border-slate-200 dark:border-slate-800 p-4 rounded-3xl shadow-sm text-center">
         <span className="text-[10px] font-extrabold text-brand-orange block mb-1">🎁 كود الإحالة الخاص بك</span>
-        <code className="text-base font-black text-brand-navy dark:text-brand-light block tracking-widest">{currentUser.referralCode || 'REF-CUST1'}</code>
-        <span className="text-[9px] text-slate-400 block mt-2">شاركه مع أصدقائك للحصول على 50 ج.م رصيد فوري لكل حجز ناجح.</span>
+        <code className="text-base font-black text-brand-navy dark:text-brand-light block tracking-widest">{customerUser.referralCode || 'REF-CUST1'}</code>
+        <span className="text-[9px] text-slate-450 block mt-2">شاركه مع أصدقائك للحصول على 50 ج.م رصيد فوري لكل حجز ناجح.</span>
       </div>
 
       {/* زر تسجيل الخروج */}

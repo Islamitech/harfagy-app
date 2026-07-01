@@ -84,7 +84,9 @@ export const JobTracking = () => {
       if (hasPenalty) {
         // 1. الخصم من محفظة العميل
         const usersList = await db.users.getAll();
-        const clientAcc = usersList.find(u => u.id === currentUser.id);
+        const isCustomer = currentUser.role === 'customer';
+        const targetCustomerId = isCustomer ? currentUser.id : 'cust-1';
+        const clientAcc = usersList.find(u => u.id === targetCustomerId);
         if (clientAcc) {
           const nextWallet = Math.max(0, (clientAcc.wallet || 0) - 50);
           await db.users.update(clientAcc.id, { wallet: nextWallet });
@@ -134,7 +136,9 @@ export const JobTracking = () => {
   useEffect(() => {
     if (!currentUser) return;
     const fetchJobs = async () => {
-      const list = await db.jobs.query(j => j.customerId === currentUser.id);
+      const isCustomer = currentUser.role === 'customer';
+      const targetCustomerId = isCustomer ? currentUser.id : 'cust-1';
+      const list = await db.jobs.query(j => j.customerId === targetCustomerId);
       // ترتيب تنازلي حسب الأحدث، مع استبعاد الطلبات الملغية والمنتهية من التتبع المباشر إذا لم تكن نشطة
       setJobs(list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
       
@@ -402,7 +406,9 @@ export const JobTracking = () => {
                 {/* الرسائل المتداولة */}
                 <div className="flex-1 overflow-y-auto flex flex-col gap-2 p-1">
                   {messages.map(msg => {
-                    const isSender = msg.senderId === currentUser.id;
+                    const isCustomer = currentUser.role === 'customer';
+                    const targetCustomerId = isCustomer ? currentUser.id : 'cust-1';
+                    const isSender = msg.senderId === targetCustomerId;
                     return (
                       <div 
                         key={msg.id}
