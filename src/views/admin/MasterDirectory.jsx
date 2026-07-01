@@ -326,6 +326,13 @@ export const MasterDirectory = ({ activeRole = 'superadmin' }) => {
                 const isBannable = canBlockUser(activeRole, user);
                 const stats = getUserStats(user);
 
+                const userJobsList = user.role === 'customer' 
+                  ? jobs.filter(j => j && j.customerId === user.id)
+                  : jobs.filter(j => {
+                      const artProfile = artisans.find(a => a && a.userId === user.id);
+                      return artProfile && j && j.artisanId === artProfile.id;
+                    });
+
                 return (
                   <React.Fragment key={user.id}>
                     <tr 
