@@ -34,6 +34,7 @@ export const CustomerHome = ({ onSelectJobTrack }) => {
   // معالع الحجز وملف الفني الشخصي
   const [selectedArtisanForBooking, setSelectedArtisanForBooking] = useState(null);
   const [selectedArtisanForProfile, setSelectedArtisanForProfile] = useState(null);
+  const [profileUser, setProfileUser] = useState(null);
   const [activePendingJob, setActivePendingJob] = useState(null);
 
   // تحقق ديناميكي من وجود طلب بث معلق نشط للعميل لمنع تكرار الطلبات وعرض الرادار
