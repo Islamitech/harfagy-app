@@ -27,7 +27,9 @@ export const BookingFlow = ({
   const [description, setDescription] = useState('');
   const [street, setStreet] = useState('');
   const [building, setBuilding] = useState('');
+  const [floor, setFloor] = useState('');
   const [apartment, setApartment] = useState('');
+  const [landmark, setLandmark] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('cash');
 
   const handleSubmit = async (e) => {
@@ -52,7 +54,9 @@ export const BookingFlow = ({
       paymentMethod: sanitizeInput(paymentMethod),
       street: sanitizeInput(street),
       building: sanitizeInput(building),
+      floor: sanitizeInput(floor),
       apartment: sanitizeInput(apartment),
+      landmark: sanitizeInput(landmark),
       governorate: currentUser.governorate || 'الجيزة',
       district: currentUser.district || 'حدائق الأهرام',
       status: 'pending', // بانتظار قبول أي فني
@@ -148,7 +152,7 @@ export const BookingFlow = ({
         {/* الخطوة 2: العنوان والدفع */}
         {step === 2 && (
           <div className="flex flex-col gap-3 text-xs">
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-4 gap-2">
               <Input
                 label="اسم الشارع"
                 required
@@ -159,16 +163,32 @@ export const BookingFlow = ({
               <Input
                 label="رقم العقار"
                 required
-                placeholder="ح ع"
+                placeholder="278 ح"
                 value={building}
                 onChange={(e) => setBuilding(e.target.value)}
               />
               <Input
+                label="رقم الدور"
+                required
+                placeholder="الـ 3"
+                value={floor}
+                onChange={(e) => setFloor(e.target.value)}
+              />
+              <Input
                 label="رقم الشقة"
                 required
-                placeholder="10"
+                placeholder="6"
                 value={apartment}
                 onChange={(e) => setApartment(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <Input
+                label="علامة مميزة للمكان (اختياري)"
+                placeholder="مثال: العمارة بجوار سوبر ماركت البركة أو أمام صيدلية علي"
+                value={landmark}
+                onChange={(e) => setLandmark(e.target.value)}
               />
             </div>
 

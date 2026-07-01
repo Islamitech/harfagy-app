@@ -178,7 +178,8 @@ export const IncomingLeads = ({ onAcceptSuccess }) => {
               <div className="font-extrabold text-slate-800 dark:text-brand-light">العميل: {job.customerName}</div>
               
               <div className="bg-slate-50 dark:bg-slate-950/30 p-3.5 rounded-2xl text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
-                <strong>الموقع:</strong> {job.street}، عقار {job.building}، شقة {job.apartment}<br/>
+                <strong>الموقع:</strong> {job.street}، عقار {job.building}، الدور {job.floor || 'الأرضي'}، شقة {job.apartment}<br/>
+                {job.landmark && <div className="mt-0.5"><strong>علامة مميزة:</strong> {job.landmark}</div>}
                 <strong>تفاصيل المشكلة:</strong> {job.description}
               </div>
 

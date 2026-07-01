@@ -109,7 +109,8 @@ export const ActiveJobs = () => {
               </div>
 
               <div className="bg-slate-50 dark:bg-slate-800/40 p-3 rounded-2xl leading-relaxed text-slate-600 dark:text-slate-400">
-                <strong>العنوان:</strong> {job.street}، عقار {job.building}، شقة {job.apartment}<br/>
+                <strong>العنوان:</strong> {job.street}، عقار {job.building}، الدور {job.floor || 'الأرضي'}، شقة {job.apartment}<br/>
+                {job.landmark && <div className="mt-0.5"><strong>علامة مميزة للموقع:</strong> {job.landmark}</div>}
                 <strong>الهاتف:</strong> {job.customerPhone}<br/>
                 <strong>المشكلة:</strong> {job.description}
               </div>
