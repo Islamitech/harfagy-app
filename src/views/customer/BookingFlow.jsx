@@ -41,10 +41,17 @@ export const BookingFlow = ({
     const selectedCategory = artisan ? artisan.category : category;
     const basePrice = prices[selectedCategory] || 50;
 
+    const isCustomer = currentUser.role === 'customer';
+    const customerId = isCustomer ? currentUser.id : 'cust-1';
+    const customerName = isCustomer ? currentUser.name : 'أحمد صاوي';
+    const customerPhone = isCustomer ? currentUser.phone : '01011223344';
+    const customerGov = isCustomer ? (currentUser.governorate || 'الجيزة') : 'الجيزة';
+    const customerDistrict = isCustomer ? (currentUser.district || 'حدائق الأهرام') : 'حدائق الأهرام';
+
     const payload = {
-      customerId: currentUser.id,
-      customerName: currentUser.name,
-      customerPhone: currentUser.phone,
+      customerId,
+      customerName,
+      customerPhone,
       artisanId: null, // بث عام، لا فني محدد في البداية
       artisanName: null,
       artisanPhone: null,
@@ -57,8 +64,8 @@ export const BookingFlow = ({
       floor: sanitizeInput(floor),
       apartment: sanitizeInput(apartment),
       landmark: sanitizeInput(landmark),
-      governorate: currentUser.governorate || 'الجيزة',
-      district: currentUser.district || 'حدائق الأهرام',
+      governorate: customerGov,
+      district: customerDistrict,
       status: 'pending', // بانتظار قبول أي فني
       price: basePrice,
       isRated: false,

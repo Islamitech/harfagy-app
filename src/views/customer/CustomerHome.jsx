@@ -12,7 +12,7 @@ import { sanitizeInput } from '../../utils/sanitizer.js';
  */
 export const CustomerHome = ({ onSelectJobTrack }) => {
   const { currentUser, favorites, toggleFavorite } = useUser();
-  const { language } = useApp();
+  const { language, showToast } = useApp();
 
   // الحالات المحلية
   const [artisans, setArtisans] = useState([]);
@@ -35,6 +35,27 @@ export const CustomerHome = ({ onSelectJobTrack }) => {
   const [selectedArtisanForBooking, setSelectedArtisanForBooking] = useState(null);
   const [selectedArtisanForProfile, setSelectedArtisanForProfile] = useState(null);
   const [profileUser, setProfileUser] = useState(null);
+  
+  const [activePendingJob, setActivePendingJob] = useState(null);
+
+  // تحقق ديناميكي من وجود طلب بث معلق نشط للعميل لمنع تكرار الطلبات وعرض الرادار
+  useEffect(() => {
+    if (!currentUser) return;
+    const checkPendingJob = async () => {
+      const allJobs = await db.jobs.getAll();
+      const isCustomer = currentUser.role === 'customer';
+      const targetCustomerId = isCustomer ? currentUser.id : 'cust-1';
+      
+      const pending = allJobs.find(j => j.customerId === targetCustomerId && j.status === 'pending');
+      setActivePendingJob(pending || null);
+    };
+    checkPendingJob();
+
+    const unsub = db.subscribe(() => {
+      checkPendingJob();
+    });
+    return () => unsub();
+  }, [currentUser]);
 
   // جلب حساب المستخدم المرتبط بالفني لمعاينة الملف الشخصي
   useEffect(() => {
@@ -121,6 +142,52 @@ export const CustomerHome = ({ onSelectJobTrack }) => {
     const cat = categories.find(c => c.id === catId);
     return cat ? (language === 'ar' ? cat.name_ar : cat.name_en) : catId;
   };
+
+  if (activePendingJob) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center py-16 px-6 bg-slate-50 dark:bg-[#0b0f19] text-center font-cairo h-full min-h-[500px]" style={{ direction: language === 'ar' ? 'rtl' : 'ltr' }}>
+        
+        {/* رادار مضيء يدور */}
+        <div className="relative w-32 h-32 mb-8 flex items-center justify-center">
+          {/* دوائر النبض */}
+          <div className="absolute inset-0 rounded-full bg-orange-500/10 animate-ping" />
+          <div className="absolute inset-4 rounded-full bg-orange-500/20 animate-pulse" />
+          {/* الدائرة الدوارة الأساسية */}
+          <div className="absolute inset-0 rounded-full border-4 border-dashed border-brand-orange animate-spin" style={{ animationDuration: '4s' }} />
+          
+          {/* أيقونة راديو إرسال في المنتصف */}
+          <div className="w-16 h-16 rounded-full bg-brand-orange text-white flex items-center justify-center text-2xl shadow-lg z-10">
+            📡
+          </div>
+        </div>
+
+        <h3 className="text-xs font-black text-brand-navy dark:text-brand-light mb-2">
+          📡 جاري البحث عن حرفي وبث طلبك...
+        </h3>
+        <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed max-w-xs mb-8">
+          تم إرسال بلاغ العطل العاجل لكافة فنيي <span className="text-brand-orange font-bold">({getCategoryLabel(activePendingJob.category)})</span> بمنطقة <span className="font-bold text-slate-800 dark:text-brand-light">{activePendingJob.district}</span>. 
+          يرجى الانتظار حتى يقبل أحد الفنيين القريبين الطلب ويتحرك إليك فوراً.
+        </p>
+
+        {/* زر إلغاء البث الفوري */}
+        <Button 
+          variant="danger"
+          onClick={async () => {
+            await db.jobs.update(activePendingJob.id, { status: 'cancelled' });
+            showToast(language === 'ar' ? '✕ تم إلغاء طلب البحث بنجاح' : 'Search request cancelled', 'info');
+          }}
+          className="text-[10px] font-black py-2.5 px-6 rounded-full shadow-md active:scale-95 transition-all border-none"
+        >
+          ✕ إلغاء طلب البحث الفوري
+        </Button>
+        
+        <span className="text-[8px] text-slate-400 mt-3 font-bold">
+          ملاحظة: يمكنك إلغاء طلب البث الآن مجاناً دون تطبيق أي رسوم.
+        </span>
+
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-5 p-4 text-right font-cairo bg-slate-50 dark:bg-[#0b0f19]" style={{ direction: language === 'ar' ? 'rtl' : 'ltr' }}>
