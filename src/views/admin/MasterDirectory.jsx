@@ -11,28 +11,119 @@ export const MasterDirectory = ({ activeRole = 'superadmin' }) => {
   const { language, showToast } = useApp();
 
   const [users, setUsers] = useState([]);
+  const [jobs, setJobs] = useState([]);
+  const [complaints, setComplaints] = useState([]);
+  const [artisans, setArtisans] = useState([]);
+  const [auditLogs, setAuditLogs] = useState([]);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
+  const [expandedUserId, setExpandedUserId] = useState(null);
 
   useEffect(() => {
-    const fetchUsers = async () => {
+    const fetchAllData = async () => {
       const allUsers = await db.users.getAll();
-      setUsers(allUsers);
+      const allJobs = await db.jobs.getAll();
+      const allComplaints = await db.complaints.getAll();
+      const allArtisans = await db.artisans.getAll();
+      const allLogs = await db.audit_logs.getAll();
+      
+      setUsers(allUsers || []);
+      setJobs(allJobs || []);
+      setComplaints(allComplaints || []);
+      setArtisans(allArtisans || []);
+      setAuditLogs(allLogs || []);
     };
-    fetchUsers();
+    fetchAllData();
 
-    const unsub = db.subscribe(() => {
-      fetchUsers();
-    });
+    const unsub = db.subscribe(fetchAllData);
     return () => unsub();
   }, []);
 
+  // التحقق من صلاحيات حظر حسابات المستخدمين بناءً على رتب النظام
+  const canBlockUser = (activeAdminRole, targetUser) => {
+    // لا يمكن حظر حسابات المدير العام أو المسؤول الأول إطلاقاً
+    if (targetUser.role === 'superadmin' || targetUser.role === 'admin' || targetUser.phone === 'AEAdmin' || targetUser.id === 'admin-system') {
+      return false;
+    }
+
+    if (activeAdminRole === 'superadmin') {
+      // المدير العام يحق له حظر المشرف المالي والمشرف الأمني والعملاء والحرفيين
+      return true;
+    }
+
+    if (activeAdminRole === 'security') {
+      // المشرف الأمني له صلاحية حظر العملاء والحرفيين فقط
+      return targetUser.role === 'customer' || targetUser.role === 'artisan';
+    }
+
+    return false; // المشرف المالي (auditor) ليس له صلاحية الحظر مطلقاً
+  };
+
+  // تجميع وإعداد التقارير الإحصائية الشاملة لكل مستخدم
+  const getUserStats = (user) => {
+    if (user.role === 'customer') {
+      const userJobs = (jobs || []).filter(j => j && j.customerId === user.id);
+      const completed = userJobs.filter(j => j.status === 'completed');
+      const cancelled = userJobs.filter(j => j.status === 'cancelled');
+      const userComplaints = (complaints || []).filter(c => c && c.customerId === user.id);
+      const totalSpent = completed.reduce((sum, j) => sum + (j.totalPrice || 0), 0);
+      
+      return {
+        type: 'customer',
+        totalJobs: userJobs.length,
+        completedCount: completed.length,
+        cancelledCount: cancelled.length,
+        complaintsCount: userComplaints.length,
+        totalSpent,
+        wallet: user.wallet || 0
+      };
+    }
+    
+    if (user.role === 'artisan') {
+      const artProfile = (artisans || []).find(a => a && a.userId === user.id);
+      const artProfileId = artProfile ? artProfile.id : null;
+      const userJobs = (jobs || []).filter(j => j && j.artisanId === artProfileId);
+      const completed = userJobs.filter(j => j.status === 'completed');
+      const cancelled = userJobs.filter(j => j.status === 'cancelled');
+      const userComplaints = (complaints || []).filter(c => c && c.artisanId === artProfileId);
+      const totalIncome = completed.reduce((sum, j) => sum + (j.price || 0), 0);
+      const totalCommission = completed.reduce((sum, j) => sum + (j.commission || 0), 0);
+      
+      return {
+        type: 'artisan',
+        totalJobs: userJobs.length,
+        completedCount: completed.length,
+        cancelledCount: cancelled.length,
+        complaintsCount: userComplaints.length,
+        totalIncome,
+        totalCommission,
+        wallet: artProfile ? (artProfile.wallet || 0) : 0,
+        commissionDue: artProfile ? (artProfile.commissionDue || 0) : 0,
+        rating: artProfile ? artProfile.rating : 5.0,
+        rank: artProfile ? artProfile.rank : 'bronze',
+        verified: artProfile ? artProfile.verified : false
+      };
+    }
+    
+    // رتب إدارية
+    const actionsCount = (auditLogs || []).filter(log => log && log.adminRole === user.role).length;
+    return {
+      type: 'admin',
+      actionsCount,
+      accessLevel: user.role === 'superadmin' ? 'كامل الصلاحيات والمراقبة العامة (المدير العام)'
+                 : user.role === 'auditor' ? 'صلاحيات مالية واعتماد طلبات السحب'
+                 : user.role === 'security' ? 'صلاحيات أمنية وتسوية شكاوى ونزاعات الصيانة'
+                 : 'صلاحيات إدارية ورقابة عامة'
+    };
+  };
+
   // حظر / فك حظر حساب مستخدم
   const toggleBanStatus = async (user) => {
-    // التحقق من الصلاحيات الأمنية للمشرف المالي (auditor)
-    if (activeRole === 'auditor') {
+    // التحقق من صلاحية الإجراء بناءً على الرتبة الحالية والرتبة المستهدفة
+    if (!canBlockUser(activeRole, user)) {
       showToast(
-        language === 'ar' ? '⚠️ عذراً، لا تمتلك الصلاحيات الأمنية لتعديل حالة الحسابات (صلاحية المشرف المالي مقيدة للمدفوعات فقط).' : 'Access denied: Auditor cannot ban users.',
+        language === 'ar' ? '⚠️ غير مصرح: لا تمتلك الصلاحية الكافية لحظر أو تعديل حالة هذا الحساب الإداري.' : 'Unauthorized: Insufficient permissions to modify this account.',
         'error'
       );
       return;
@@ -211,71 +302,173 @@ export const MasterDirectory = ({ activeRole = 'superadmin' }) => {
           </thead>
           <tbody>
             {filteredUsers.length > 0 ? (
-              filteredUsers.map(user => (
-                <tr 
-                  key={user.id} 
-                  className="border-b border-slate-50 dark:border-slate-850 hover:bg-slate-50/50 dark:hover:bg-slate-800/20"
-                >
-                  <td className="p-3">
-                    <div className="font-extrabold text-brand-navy dark:text-brand-light">{user.name}</div>
-                    <div className="text-[10px] text-slate-400 mt-0.5">{user.email || 'بلا بريد'}</div>
-                  </td>
-                  
-                  <td className="p-3 text-[10px] text-slate-500 dark:text-slate-400">
-                    <div>{user.phone}</div>
-                    <div className="mt-0.5">{user.governorate} • {user.district}</div>
-                  </td>
-                  
-                  <td className="p-3">
-                    {user.id === 'usr-admin' ? (
-                      <span className="px-2 py-0.5 rounded-full text-[9px] font-black border text-purple-600 bg-purple-500/10 border-purple-200">
-                        المدير العام 👑
-                      </span>
-                    ) : activeRole === 'superadmin' || activeRole === 'admin' ? (
-                      <select
-                        value={user.role}
-                        onChange={(e) => updateUserRole(user, e.target.value)}
-                        className="text-[10px] p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 font-bold outline-none focus:border-brand-orange cursor-pointer"
-                      >
-                        <option value="customer">عميل 👤</option>
-                        <option value="artisan">حرفي 👷‍♂️</option>
-                        <option value="auditor">مشرف مالي 💵</option>
-                        <option value="security">مشرف أمني 🛡️</option>
-                        <option value="superadmin">مدير عام 👑</option>
-                      </select>
-                    ) : (
-                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-black border
-                        ${user.role === 'superadmin' || user.role === 'admin' 
-                          ? 'text-purple-600 bg-purple-500/10 border-purple-200' 
-                          : user.role === 'artisan' 
-                            ? 'text-brand-orange bg-orange-500/10 border-orange-200' 
-                            : 'text-brand-navy bg-slate-100 dark:bg-slate-800 dark:text-brand-light'}`}
-                      >
-                        {user.role === 'superadmin' || user.role === 'admin' ? 'مدير عام' 
-                         : user.role === 'artisan' ? 'حرفي' 
-                         : user.role === 'auditor' ? 'مشرف مالي' 
-                         : user.role === 'security' ? 'مشرف أمني' 
-                         : 'عميل'}
-                      </span>
+              filteredUsers.map(user => {
+                const isExpanded = expandedUserId === user.id;
+                const isBannable = canBlockUser(activeRole, user);
+                const stats = getUserStats(user);
+
+                return (
+                  <React.Fragment key={user.id}>
+                    <tr 
+                      onClick={() => setExpandedUserId(isExpanded ? null : user.id)}
+                      className={`border-b border-slate-50 dark:border-slate-850 hover:bg-slate-50/50 dark:hover:bg-slate-800/20 cursor-pointer transition-colors ${isExpanded ? 'bg-orange-500/5 dark:bg-orange-550/5 font-bold' : ''}`}
+                    >
+                      <td className="p-3">
+                        <div className="font-extrabold text-brand-navy dark:text-brand-light flex items-center gap-1.5">
+                          <span>{user.name}</span>
+                          {isExpanded && <span className="text-[8px] bg-brand-orange/10 text-brand-orange px-1.5 py-0.2 rounded-md font-black">نشط الآن 👁️</span>}
+                        </div>
+                        <div className="text-[10px] text-slate-400 mt-0.5">{user.email || 'بلا بريد'}</div>
+                      </td>
+                      
+                      <td className="p-3 text-[10px] text-slate-500 dark:text-slate-400">
+                        <div>{user.phone}</div>
+                        <div className="mt-0.5">{user.governorate} • {user.district}</div>
+                      </td>
+                      
+                      <td className="p-3" onClick={(e) => e.stopPropagation()}>
+                        {user.id === 'usr-admin' || user.id === 'admin-system' || user.phone === 'AEAdmin' ? (
+                          <span className="px-2 py-0.5 rounded-full text-[9px] font-black border text-purple-600 bg-purple-500/10 border-purple-200">
+                            المدير العام 👑
+                          </span>
+                        ) : activeRole === 'superadmin' ? (
+                          <select
+                            value={user.role}
+                            onChange={(e) => updateUserRole(user, e.target.value)}
+                            className="text-[10px] p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 font-bold outline-none focus:border-brand-orange cursor-pointer"
+                          >
+                            <option value="customer">عميل 👤</option>
+                            <option value="artisan">حرفي 👷‍♂️</option>
+                            <option value="auditor">مشرف مالي 💵</option>
+                            <option value="security">مشرف أمني 🛡️</option>
+                            <option value="superadmin">مدير عام 👑</option>
+                          </select>
+                        ) : (
+                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-black border
+                            ${user.role === 'superadmin' || user.role === 'admin' 
+                              ? 'text-purple-600 bg-purple-500/10 border-purple-200' 
+                              : user.role === 'artisan' 
+                                ? 'text-brand-orange bg-orange-500/10 border-orange-200' 
+                                : 'text-brand-navy bg-slate-100 dark:bg-slate-800 dark:text-brand-light'}`}
+                          >
+                            {user.role === 'superadmin' || user.role === 'admin' ? 'مدير عام' 
+                             : user.role === 'artisan' ? 'حرفي' 
+                             : user.role === 'auditor' ? 'مشرف مالي' 
+                             : user.role === 'security' ? 'مشرف أمني' 
+                             : 'عميل'}
+                          </span>
+                        )}
+                      </td>
+                      
+                      <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
+                        {!isBannable ? (
+                          <span className="text-[9px] text-slate-400 font-extrabold bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-lg">محمي 🔒</span>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant={user.isBanned ? 'outline' : 'danger'}
+                            className="text-[9px] px-3.5 py-1 rounded-xl mx-auto font-black"
+                            onClick={() => toggleBanStatus(user)}
+                          >
+                            {user.isBanned ? 'فك الحظر 🟢' : 'حظر الحساب 🔴'}
+                          </Button>
+                        )}
+                      </td>
+                    </tr>
+
+                    {/* الصف الإحصائي التوسعي للمراقبة المتقدمة */}
+                    {isExpanded && (
+                      <tr>
+                        <td colSpan="4" className="bg-slate-50/40 dark:bg-slate-900/30 p-3 border-b border-slate-100 dark:border-slate-850 animate-fadeIn" onClick={(e) => e.stopPropagation()}>
+                          <div className="bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800 p-4 rounded-2xl flex flex-col gap-3.5 text-right shadow-inner">
+                            
+                            <div className="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-slate-800">
+                              <span className="text-[10px] font-black text-brand-orange bg-orange-500/10 px-2.5 py-0.5 rounded-md flex items-center gap-1">
+                                📊 التقرير التحليلي الرقابي الشامل للمستخدم
+                              </span>
+                              <span className="text-[9px] text-slate-400 font-extrabold">الهوية الرقمية: {user.custom_id || 'بلا معرف'}</span>
+                            </div>
+
+                            {/* رندر البيانات المخصصة لنوع المستخدم */}
+                            {user.role === 'customer' && (
+                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+                                <div className="bg-slate-50 dark:bg-slate-850 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
+                                  <span className="text-slate-400 text-[9px] block font-bold">الطلبات المنجزة</span>
+                                  <strong className="text-brand-navy dark:text-brand-light text-xs mt-1 block">{stats.completedCount} من {stats.totalJobs} طلب</strong>
+                                </div>
+                                <div className="bg-slate-50 dark:bg-slate-850 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
+                                  <span className="text-slate-400 text-[9px] block font-bold">الطلبات الملغاة</span>
+                                  <strong className="text-rose-600 dark:text-rose-400 text-xs mt-1 block">{stats.cancelledCount} عملية</strong>
+                                </div>
+                                <div className="bg-slate-50 dark:bg-slate-850 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
+                                  <span className="text-slate-400 text-[9px] block font-bold">النزاعات والشكاوى</span>
+                                  <strong className={`${stats.complaintsCount > 0 ? 'text-amber-600' : 'text-slate-500'} text-xs mt-1 block`}>{stats.complaintsCount} شكاوى</strong>
+                                </div>
+                                <div className="bg-slate-50 dark:bg-slate-850 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
+                                  <span className="text-slate-400 text-[9px] block font-bold">المحفظة وإجمالي الإنفاق</span>
+                                  <strong className="text-emerald-600 dark:text-emerald-400 text-xs mt-1 block">{stats.totalSpent} ج.م (الرصيد: {stats.wallet} ج.م)</strong>
+                                </div>
+                              </div>
+                            )}
+
+                            {user.role === 'artisan' && (
+                              <div className="flex flex-col gap-3">
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+                                  <div className="bg-slate-50 dark:bg-slate-850 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
+                                    <span className="text-slate-400 text-[9px] block font-bold">العمليات المنجزة</span>
+                                    <strong className="text-brand-navy dark:text-brand-light text-xs mt-1 block">{stats.completedCount} من {stats.totalJobs} عملية</strong>
+                                  </div>
+                                  <div className="bg-slate-50 dark:bg-slate-850 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
+                                    <span className="text-slate-400 text-[9px] block font-bold">العمليات الملغاة</span>
+                                    <strong className="text-rose-600 dark:text-rose-400 text-xs mt-1 block">{stats.cancelledCount}</strong>
+                                  </div>
+                                  <div className="bg-slate-50 dark:bg-slate-850 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
+                                    <span className="text-slate-400 text-[9px] block font-bold">النزاعات والشكاوى</span>
+                                    <strong className={`${stats.complaintsCount > 0 ? 'text-amber-600' : 'text-slate-500'} text-xs mt-1 block`}>{stats.complaintsCount} شكوى</strong>
+                                  </div>
+                                  <div className="bg-slate-50 dark:bg-slate-850 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
+                                    <span className="text-slate-400 text-[9px] block font-bold">الرصيد المتاح بالمحفظة</span>
+                                    <strong className="text-emerald-600 dark:text-emerald-400 text-xs mt-1 block">{stats.wallet} ج.م</strong>
+                                  </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-center border-t border-slate-100 dark:border-slate-800 pt-3">
+                                  <div className="bg-slate-50 dark:bg-slate-850 p-2.5 rounded-xl">
+                                    <span className="text-slate-400 text-[9px] block font-bold">أرباح الحرفي الصافية</span>
+                                    <strong className="text-brand-navy dark:text-brand-light text-xs mt-0.5 block">{stats.totalIncome} ج.م</strong>
+                                  </div>
+                                  <div className="bg-slate-50 dark:bg-slate-850 p-2.5 rounded-xl">
+                                    <span className="text-slate-400 text-[9px] block font-bold">أرباح المنصة عمولة</span>
+                                    <strong className="text-orange-600 dark:text-orange-400 text-xs mt-0.5 block">{stats.totalCommission} ج.م (المستحقات: {stats.commissionDue} ج.م)</strong>
+                                  </div>
+                                  <div className="bg-slate-50 dark:bg-slate-850 p-2.5 rounded-xl">
+                                    <span className="text-slate-400 text-[9px] block font-bold">التقييم الفني والرتبة</span>
+                                    <strong className="text-amber-500 text-xs mt-0.5 block">⭐ {stats.rating} ({stats.rank === 'golden' ? 'ذهبي 👑' : stats.rank === 'silver' ? 'فضي 🥈' : 'برونزي 🥉'})</strong>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            {['superadmin', 'admin', 'auditor', 'security'].includes(user.role) && (
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-right">
+                                <div className="bg-slate-50 dark:bg-slate-850 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
+                                  <span className="text-slate-400 text-[9px] block font-bold">صلاحيات مستوى الترخيص</span>
+                                  <strong className="text-brand-navy dark:text-brand-light text-[11px] mt-1.5 block">{stats.accessLevel}</strong>
+                                </div>
+                                <div className="bg-slate-50 dark:bg-slate-850 p-3 rounded-xl border border-slate-100 dark:border-slate-800 text-center flex flex-col justify-center">
+                                  <span className="text-slate-400 text-[9px] block font-bold">العمليات الرقابية بسجل الأمان</span>
+                                  <strong className="text-purple-600 dark:text-purple-400 text-xs mt-1 block">{stats.actionsCount} إجراء أمني</strong>
+                                </div>
+                              </div>
+                            )}
+
+                          </div>
+                        </td>
+                      </tr>
                     )}
-                  </td>
-                  
-                  <td className="p-3 text-center">
-                    {user.id === 'usr-admin' || user.role === 'admin' ? (
-                      <span className="text-[9px] text-slate-400">محمي 🔒</span>
-                    ) : (
-                      <Button
-                        size="sm"
-                        variant={user.isBanned ? 'outline' : 'danger'}
-                        className="text-[9px] px-3.5 py-1 rounded-xl mx-auto"
-                        onClick={() => toggleBanStatus(user)}
-                      >
-                        {user.isBanned ? 'فك الحظر 🟢' : 'حظر الحساب 🔴'}
-                      </Button>
-                    )}
-                  </td>
-                </tr>
-              ))
+                  </React.Fragment>
+                );
+              })
             ) : (
               <tr>
                 <td colSpan="4" className="text-center py-10 text-slate-400">عذراً، لم نجد أي مستخدم يطابق شروط البحث.</td>
