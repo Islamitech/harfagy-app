@@ -12,24 +12,32 @@ export const IncomingLeads = ({ onAcceptSuccess }) => {
   const { language, showToast } = useApp();
 
   const [artisan, setArtisan] = useState(null);
+  const [artisanUser, setArtisanUser] = useState(null);
   const [realLeads, setRealLeads] = useState([]);
   const [selectingEtaForJobId, setSelectingEtaForJobId] = useState(null);
   const [audioContext, setAudioContext] = useState(null);
 
-  // جلب ملف الحرفي المرتبط بالمستخدم
+  // جلب ملف الحرفي وحساب المستخدم المرتبط به للاستعلام المهني والجغرافي
   useEffect(() => {
     if (!currentUser) return;
-    const fetchArtisanProfile = async () => {
+    const fetchArtisanProfileAndUser = async () => {
       const artisansList = await db.getCollection("artisans");
-      const art = artisansList.find(a => a.userId === currentUser.id);
+      const isUserAdmin = ['superadmin', 'admin', 'auditor', 'security'].includes(currentUser.role);
+      const targetUserId = isUserAdmin ? 'art-1-user' : currentUser.id;
+
+      const art = artisansList.find(a => a.userId === targetUserId);
       if (art) setArtisan(art);
+
+      const usersList = await db.getCollection("users");
+      const usr = usersList.find(u => u.id === targetUserId);
+      if (usr) setArtisanUser(usr);
     };
-    fetchArtisanProfile();
+    fetchArtisanProfileAndUser();
   }, [currentUser]);
 
   // استعلام واشتراك تلقائي للطلبات النشطة غير المعينة بـ نفس فئة ونفس حي الفني
   useEffect(() => {
-    if (!artisan) return;
+    if (!artisan || !artisanUser) return;
     const fetchRealLeads = async () => {
       const allJobs = await db.jobs.getAll();
       const isUserAdmin = ['superadmin', 'admin', 'auditor', 'security'].includes(currentUser?.role);
@@ -37,7 +45,7 @@ export const IncomingLeads = ({ onAcceptSuccess }) => {
         j.status === 'pending' && 
         j.artisanId === null && 
         (isUserAdmin || j.category === artisan.category) &&
-        j.district === artisan.district
+        j.district === artisanUser.district // مطابقة الحي من حساب الفني بالملف الرئيسي
       );
       setRealLeads(matching);
     };
@@ -47,7 +55,7 @@ export const IncomingLeads = ({ onAcceptSuccess }) => {
       fetchRealLeads();
     });
     return () => unsub();
-  }, [artisan]);
+  }, [artisan, artisanUser]);
 
   // توليد صوت جرس تنبيهي نقي بمحاكاة الويب Web Audio API
   const playAlertSound = () => {
