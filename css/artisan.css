@@ -1,0 +1,297 @@
+/* Artisan App UI Styles */
+
+.artisan-profile-header {
+  padding: 1.25rem;
+  background: var(--bg-header);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.presence-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-app);
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+}
+
+.presence-status-text {
+  font-weight: 700;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Switch Toggle Button */
+.switch-container {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 24px;
+}
+
+.switch-container input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.switch-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--text-muted-light);
+  transition: .4s;
+  border-radius: 34px;
+}
+
+.switch-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+}
+
+input:checked + .switch-slider {
+  background-color: var(--emerald);
+}
+
+input:checked + .switch-slider:before {
+  transform: translateX(24px);
+}
+
+/* Grid of metric cards */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+  padding: 1rem;
+}
+
+.metric-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.metric-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.metric-icon-wrap {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.metric-card-value {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--text-color);
+}
+
+.metric-card-title {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+/* Active job action card */
+.active-job-card {
+  background: var(--bg-card);
+  border: 2px solid var(--primary-orange);
+  border-radius: 20px;
+  padding: 1rem;
+  margin: 0 1rem 1rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.job-steps-indicator {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0.5rem;
+}
+
+.job-step-text.active {
+  color: var(--primary-orange);
+}
+
+/* Floating Investor Leads Simulator Button */
+.investor-simulator-trigger {
+  position: absolute;
+  bottom: 80px;
+  right: 1.25rem;
+  background: linear-gradient(135deg, var(--primary-orange) 0%, #f97316 100%);
+  color: white;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 10px 15px -3px rgba(249, 115, 22, 0.4);
+  border: none;
+  z-index: 150;
+  transition: transform 0.2s;
+}
+
+.investor-simulator-trigger:active {
+  transform: scale(0.9);
+}
+
+/* Incoming lead alert modal styling */
+.lead-modal-content {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.lead-radar-animation {
+  width: 80px;
+  height: 80px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lead-radar-circle {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: rgba(249, 115, 22, 0.15);
+  animation: pulse 1.5s infinite;
+}
+
+.lead-radar-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--primary-orange);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.lead-timer-progress {
+  width: 100%;
+  height: 6px;
+  background: var(--border-color);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.lead-timer-bar {
+  width: 100%;
+  height: 100%;
+  background: var(--primary-orange);
+  transition: width 1s linear;
+}
+
+/* Ledger Transaction logs */
+.ledger-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.ledger-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg-app);
+  padding: 0.6rem 0.8rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  border: 1px solid var(--border-color);
+}
+
+.ledger-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.ledger-type {
+  font-weight: 700;
+  color: var(--text-color);
+}
+
+.ledger-date {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+}
+
+.ledger-amount {
+  font-weight: 800;
+}
+
+.ledger-amount.credit { color: var(--emerald); }
+.ledger-amount.debit { color: var(--rose); }
+
+/* Schedule / Off days settings grid */
+.schedule-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+}
+
+.schedule-day-box {
+  background: var(--bg-app);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 0.5rem;
+  text-align: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition-speed);
+}
+
+.schedule-day-box.active {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: var(--emerald);
+  color: var(--emerald);
+}
+.schedule-day-box.off {
+  background: rgba(244, 63, 94, 0.1);
+  border-color: var(--rose);
+  color: var(--rose);
+}
