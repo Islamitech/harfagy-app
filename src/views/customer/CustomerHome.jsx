@@ -34,11 +34,7 @@ export const CustomerHome = ({ onSelectJobTrack }) => {
   // معالع الحجز وملف الفني الشخصي
   const [selectedArtisanForBooking, setSelectedArtisanForBooking] = useState(null);
   const [selectedArtisanForProfile, setSelectedArtisanForProfile] = useState(null);
-  const [profileUser, setProfileUser] = useState(null);
-  
   const [activePendingJob, setActivePendingJob] = useState(null);
-  const [radarStatusText, setRadarStatusText] = useState('📡 جاري بث الإشارة للفنيين القريبين...');
-  const [activeArtisanBubble, setActiveArtisanBubble] = useState(0);
 
   // تحقق ديناميكي من وجود طلب بث معلق نشط للعميل لمنع تكرار الطلبات وعرض الرادار
   useEffect(() => {
@@ -58,34 +54,6 @@ export const CustomerHome = ({ onSelectJobTrack }) => {
     });
     return () => unsub();
   }, [currentUser]);
-
-  // تحديث حالة وتفاعلات الرادار والمحاكاة للفنيين القريبين
-  useEffect(() => {
-    if (!activePendingJob) return;
-
-    const statuses = [
-      '📡 جاري بث الإشارة للفنيين القريبين بحدائق الأهرام...',
-      '👀 الأسطى شريف رفعت يقوم بمعاينة تفاصيل عطل التكييف الآن...',
-      '💬 الأسطى فرج الله عثمان يراجع عنوان موقعك والشارع الجغرافي...',
-      '⚡ الأسطى أحمد رأفت يحدد وقت وصوله المقدر للتحرك...',
-      '⏳ بانتظار تأكيد وقبول أحد الفنيين والبدء في الطريق فورا...'
-    ];
-
-    let index = 0;
-    const intervalText = setInterval(() => {
-      index = (index + 1) % statuses.length;
-      setRadarStatusText(statuses[index]);
-    }, 3500);
-
-    const intervalBubble = setInterval(() => {
-      setActiveArtisanBubble(prev => (prev + 1) % 4);
-    }, 1800);
-
-    return () => {
-      clearInterval(intervalText);
-      clearInterval(intervalBubble);
-    };
-  }, [activePendingJob]);
 
   // جلب حساب المستخدم المرتبط بالفني لمعاينة الملف الشخصي
   useEffect(() => {
@@ -174,6 +142,8 @@ export const CustomerHome = ({ onSelectJobTrack }) => {
   };
 
   if (activePendingJob) {
+    const matchingOnlineCount = artisans.filter(a => a.category === activePendingJob.category && a.isOnline).length;
+
     return (
       <div className="flex-1 flex flex-col items-center justify-center py-16 px-6 bg-slate-50 dark:bg-[#0b0f19] text-center font-cairo h-full min-h-[500px]" style={{ direction: language === 'ar' ? 'rtl' : 'ltr' }}>
         
@@ -183,45 +153,27 @@ export const CustomerHome = ({ onSelectJobTrack }) => {
           <div className="absolute inset-0 rounded-full bg-orange-500/10 animate-ping" />
           <div className="absolute inset-4 rounded-full bg-orange-500/20 animate-pulse" />
           {/* الدائرة الدوارة الأساسية */}
-          <div className="absolute w-36 h-36 rounded-full border-4 border-dashed border-brand-orange animate-spin" style={{ animationDuration: '6s' }} />
+          <div className="absolute w-36 h-36 rounded-full border-4 border-dashed border-brand-orange animate-spin" style={{ animationDuration: '8s' }} />
           
-          {/* فقاعات الحرفيين حول الدائرة للتنبؤ وتأكيد التفاعل */}
-          <div 
-            className={`absolute -top-2 left-16 w-10 h-10 rounded-full bg-white dark:bg-slate-900 border-2 flex items-center justify-center text-lg transition-all duration-500 z-20
-              ${activeArtisanBubble === 0 ? 'border-brand-emerald scale-110 shadow-lg shadow-emerald-500/20' : 'border-slate-200 dark:border-slate-800 opacity-60'}`}
-          >
+          {/* فقاعات فنيين حقيقيين نشطين حول الدائرة بشكل واقعي ثابت */}
+          <div className="absolute -top-2 left-16 w-10 h-10 rounded-full bg-white dark:bg-slate-900 border-2 border-emerald-500 flex items-center justify-center text-lg shadow-md z-20">
             👷‍♂️
           </div>
-          <div 
-            className={`absolute top-16 -right-2 w-10 h-10 rounded-full bg-white dark:bg-slate-900 border-2 flex items-center justify-center text-lg transition-all duration-500 z-20
-              ${activeArtisanBubble === 1 ? 'border-brand-emerald scale-110 shadow-lg shadow-emerald-500/20' : 'border-slate-200 dark:border-slate-800 opacity-60'}`}
-          >
+          <div className="absolute top-16 -right-2 w-10 h-10 rounded-full bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 opacity-60 flex items-center justify-center text-lg z-20">
             👨‍🔧
-          </div>
-          <div 
-            className={`absolute -bottom-2 right-16 w-10 h-10 rounded-full bg-white dark:bg-slate-900 border-2 flex items-center justify-center text-lg transition-all duration-500 z-20
-              ${activeArtisanBubble === 2 ? 'border-brand-emerald scale-110 shadow-lg shadow-emerald-500/20' : 'border-slate-200 dark:border-slate-800 opacity-60'}`}
-          >
-            🛠️
-          </div>
-          <div 
-            className={`absolute top-16 -left-2 w-10 h-10 rounded-full bg-white dark:bg-slate-900 border-2 flex items-center justify-center text-lg transition-all duration-500 z-20
-              ${activeArtisanBubble === 3 ? 'border-brand-emerald scale-110 shadow-lg shadow-emerald-500/20' : 'border-slate-200 dark:border-slate-800 opacity-60'}`}
-          >
-            🔌
           </div>
 
           {/* أيقونة راديو إرسال في المنتصف */}
-          <div className="w-20 h-20 rounded-full bg-brand-orange text-white flex items-center justify-center text-3xl shadow-lg z-10">
+          <div className="w-20 h-20 rounded-full bg-brand-orange text-white flex items-center justify-center text-3xl shadow-lg z-10 font-bold">
             📡
           </div>
         </div>
 
         {/* شريط حالة المعاينة والنبض للفنيين */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800/80 px-4 py-2.5 rounded-2xl flex items-center gap-2 mb-6 shadow-sm max-w-xs justify-center animate-fadeIn">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800/80 px-4 py-2.5 rounded-2xl flex items-center gap-2 mb-6 shadow-sm max-w-xs justify-center">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse block"></span>
-          <span className="text-[10px] font-black text-slate-700 dark:text-slate-350">
-            {radarStatusText}
+          <span className="text-[10px] font-bold text-slate-700 dark:text-slate-350">
+            📡 تم بث طلبك إلى {matchingOnlineCount || 1} فني متصل حالياً بالحي
           </span>
         </div>
 
