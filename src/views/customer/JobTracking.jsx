@@ -21,6 +21,8 @@ export const JobTracking = () => {
   const [jobs, setJobs] = useState([]);
   const [activeJob, setActiveJob] = useState(null);
   const [remainingSeconds, setRemainingSeconds] = useState(0);
+  const [callRemainingMinutes, setCallRemainingMinutes] = useState(30);
+  const [callAvailable, setCallAvailable] = useState(false);
   
   // تذاكر ونوافذ الشكاوى والفواتير والتقييمات
   const [showInvoiceJob, setShowInvoiceJob] = useState(null);
@@ -30,17 +32,26 @@ export const JobTracking = () => {
   
   const chatBottomRef = useRef(null);
 
-  // حساب مهلة الـ 15 دقيقة المتبقية للإلغاء المجاني
+  // حساب مهلة الـ 15 دقيقة المتبقية للإلغاء المجاني وقفل الـ 30 دقيقة للمكالمات الهاتفية
   useEffect(() => {
     if (!activeJob || activeJob.status === 'pending' || !activeJob.acceptedAt) {
       setRemainingSeconds(0);
+      setCallRemainingMinutes(30);
+      setCallAvailable(false);
       return;
     }
 
     const calculateRemaining = () => {
+      // عداد الإلغاء
       const elapsedSeconds = Math.floor((new Date() - new Date(activeJob.acceptedAt)) / 1000);
-      const rem = Math.max(0, 15 * 60 - elapsedSeconds);
-      setRemainingSeconds(rem);
+      const remCancel = Math.max(0, 15 * 60 - elapsedSeconds);
+      setRemainingSeconds(remCancel);
+
+      // عداد قفل المكالمات (30 دقيقة)
+      const elapsedMinutes = Math.floor(elapsedSeconds / 60);
+      const remCall = Math.max(0, 30 - elapsedMinutes);
+      setCallRemainingMinutes(remCall);
+      setCallAvailable(remCall <= 0);
     };
 
     calculateRemaining();
@@ -305,18 +316,33 @@ export const JobTracking = () => {
                     <span className="text-[9px] text-slate-450 mt-0.5 block font-bold">تقييم الفني: ⭐ 5.0 • فني معتمد بالدليل</span>
                   </div>
                   
-                  {/* أزرار الاتصال والمحادثة الهاتفية */}
-                  <div className="flex gap-2">
+                  {/* أزرار الاتصال والمحادثة الهاتفية الموقوتة */}
+                  <div className="flex flex-col items-end gap-1.5">
                     {activeJob.artisanPhone && (
-                      <a 
-                        href={`tel:${activeJob.artisanPhone}`}
-                        className="bg-brand-emerald text-white text-[9px] font-black py-2 px-3.5 rounded-xl hover:bg-emerald-600 transition-colors shadow-sm text-center no-underline whitespace-nowrap cursor-pointer"
-                      >
-                        📞 اتصال هاتفى
-                      </a>
+                      callAvailable ? (
+                        <a 
+                          href={`tel:${activeJob.artisanPhone}`}
+                          className="bg-brand-emerald text-white text-[9px] font-black py-2 px-3.5 rounded-xl hover:bg-emerald-600 transition-colors shadow-sm text-center no-underline whitespace-nowrap cursor-pointer"
+                        >
+                          📞 اتصال هاتفي ({activeJob.artisanPhone})
+                        </a>
+                      ) : (
+                        <button 
+                          disabled
+                          className="bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 text-[8.5px] font-black py-2 px-3 rounded-xl cursor-not-allowed border-none flex items-center gap-1"
+                        >
+                          🔒 الهاتف متاح بعد {callRemainingMinutes} د
+                        </button>
+                      )
                     )}
                   </div>
                 </div>
+
+                {!callAvailable && (
+                  <span className="text-[8.5px] text-slate-400 block -mt-1.5 leading-relaxed bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded-2xl border border-slate-100 dark:border-slate-800/80">
+                    🛡️ لحماية خصوصية الطرفين، يظهر رقم الهاتف والاتصال المباشر بعد مرور 30 دقيقة من قبول الفني للطلب. يرجى استخدام الدردشة الكتابية أدناه للتنسيق الفوري.
+                  </span>
+                )}
 
                 {/* العد التنازلي للإلغاء المجاني */}
                 <div className="bg-slate-50 dark:bg-slate-950/20 p-3 rounded-2xl border border-slate-150/40 dark:border-slate-850/50 flex flex-col sm:flex-row justify-between items-center gap-3">
@@ -363,52 +389,54 @@ export const JobTracking = () => {
               </div>
             )}
 
-            {/* واجهة الدردشة اللحظية */}
-            <div className="bg-white dark:bg-brand-slate border border-slate-200 dark:border-slate-800 rounded-3xl p-4 shadow-sm flex flex-col h-80">
-              <div className="border-b border-slate-100 dark:border-slate-800 pb-2 mb-3">
-                <strong className="text-xs text-brand-navy dark:text-brand-light flex items-center gap-1.5 justify-end">
-                  <span>دردشة حية سحابية 💬</span>
-                  <span className="w-2 h-2 rounded-full bg-brand-emerald animate-pulse"></span>
-                </strong>
-              </div>
+            {activeJob.status !== 'pending' && (
+              /* واجهة الدردشة اللحظية */
+              <div className="bg-white dark:bg-brand-slate border border-slate-200 dark:border-slate-800 rounded-3xl p-4 shadow-sm flex flex-col h-80">
+                <div className="border-b border-slate-100 dark:border-slate-800 pb-2 mb-3">
+                  <strong className="text-xs text-brand-navy dark:text-brand-light flex items-center gap-1.5 justify-end">
+                    <span>دردشة حية سحابية 💬</span>
+                    <span className="w-2 h-2 rounded-full bg-brand-emerald animate-pulse"></span>
+                  </strong>
+                </div>
 
-              {/* الرسائل المتداولة */}
-              <div className="flex-1 overflow-y-auto flex flex-col gap-2 p-1">
-                {messages.map(msg => {
-                  const isSender = msg.senderId === currentUser.id;
-                  return (
-                    <div 
-                      key={msg.id}
-                      className={`
-                        max-w-[75%] rounded-2xl px-3 py-2 text-xs font-bold leading-relaxed
-                        ${isSender 
-                          ? 'bg-brand-orange text-white self-end rounded-tr-none' 
-                          : 'bg-slate-100 dark:bg-slate-800 text-brand-navy dark:text-brand-light self-start rounded-tl-none'}
-                      `}
-                    >
-                      <p>{msg.text}</p>
-                      <span className="text-[8px] opacity-75 mt-0.5 block text-left">
-                        {new Date(msg.timestamp).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    </div>
-                  );
-                })}
-                <div ref={chatBottomRef} />
-              </div>
+                {/* الرسائل المتداولة */}
+                <div className="flex-1 overflow-y-auto flex flex-col gap-2 p-1">
+                  {messages.map(msg => {
+                    const isSender = msg.senderId === currentUser.id;
+                    return (
+                      <div 
+                        key={msg.id}
+                        className={`
+                          max-w-[75%] rounded-2xl px-3 py-2 text-xs font-bold leading-relaxed
+                          ${isSender 
+                            ? 'bg-brand-orange text-white self-end rounded-tr-none' 
+                            : 'bg-slate-100 dark:bg-slate-800 text-brand-navy dark:text-brand-light self-start rounded-tl-none'}
+                        `}
+                      >
+                        <p>{msg.text}</p>
+                        <span className="text-[8px] opacity-75 mt-0.5 block text-left">
+                          {new Date(msg.timestamp).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                    );
+                  })}
+                  <div ref={chatBottomRef} />
+                </div>
 
-              {/* حقل كتابة الرسالة */}
-              <form onSubmit={handleSend} className="mt-3 flex gap-2">
-                <input 
-                  type="text"
-                  required
-                  value={chatInputText}
-                  onChange={(e) => setChatInputText(e.target.value)}
-                  placeholder="اكتب رسالتك للأسطى هنا..."
-                  className="flex-1 text-xs px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 text-brand-navy dark:text-brand-light border border-slate-200 dark:border-slate-700 outline-none focus:border-brand-orange"
-                />
-                <Button type="submit" size="sm" className="px-4">إرسال</Button>
-              </form>
-            </div>
+                {/* حقل كتابة الرسالة */}
+                <form onSubmit={handleSend} className="mt-3 flex gap-2">
+                  <input 
+                    type="text"
+                    required
+                    value={chatInputText}
+                    onChange={(e) => setChatInputText(e.target.value)}
+                    placeholder="اكتب رسالتك للأسطى هنا..."
+                    className="flex-1 text-xs px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 text-brand-navy dark:text-brand-light border border-slate-200 dark:border-slate-700 outline-none focus:border-brand-orange"
+                  />
+                  <Button type="submit" size="sm" className="px-4">إرسال</Button>
+                </form>
+              </div>
+            )}
           </div>
         ) : (
           <div className="hidden md:flex flex-col items-center justify-center h-full py-20 bg-slate-50 dark:bg-slate-800/40 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800 text-slate-400">

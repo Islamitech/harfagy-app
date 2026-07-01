@@ -4,6 +4,7 @@ import { useUser } from '../../context/UserContext.jsx';
 import { useApp } from '../../context/AppContext.jsx';
 import { Button } from '../../components/common/Button.jsx';
 import { BookingFlow } from './BookingFlow.jsx';
+import { Modal } from '../../components/common/Modal.jsx';
 import { sanitizeInput } from '../../utils/sanitizer.js';
 
 /**
@@ -30,8 +31,49 @@ export const CustomerHome = ({ onSelectJobTrack }) => {
   const [governorate, setGovernorate] = useState('الجيزة');
   const [district, setDistrict] = useState('الكل');
 
-  // معالج الحجز
+  // معالع الحجز وملف الفني الشخصي
   const [selectedArtisanForBooking, setSelectedArtisanForBooking] = useState(null);
+  const [selectedArtisanForProfile, setSelectedArtisanForProfile] = useState(null);
+  const [profileUser, setProfileUser] = useState(null);
+
+  // جلب حساب المستخدم المرتبط بالفني لمعاينة الملف الشخصي
+  useEffect(() => {
+    if (!selectedArtisanForProfile) {
+      setProfileUser(null);
+      return;
+    }
+    const fetchUser = async () => {
+      const usersList = await db.getCollection("users");
+      const matched = usersList.find(u => u.id === selectedArtisanForProfile.userId);
+      if (matched) setProfileUser(matched);
+    };
+    fetchUser();
+  }, [selectedArtisanForProfile]);
+
+  const getCategoryWorkImages = (cat) => {
+    const defaultImages = {
+      plumber: [
+        'https://images.unsplash.com/photo-1581094288338-2314dddb7ecc?w=400&q=80',
+        'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=400&q=80'
+      ],
+      electrician: [
+        'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=400&q=80',
+        'https://images.unsplash.com/photo-1498084393753-b411b2d26b34?w=400&q=80'
+      ],
+      hvac: [
+        'https://images.unsplash.com/photo-1527018601619-a508a2be00cd?w=400&q=80',
+        'https://images.unsplash.com/photo-1621905252507-b354bc25edac?w=400&q=80'
+      ],
+      carpenter: [
+        'https://images.unsplash.com/photo-1533090161767-e6ffed986c88?w=400&q=80',
+        'https://images.unsplash.com/photo-1459802014292-8969011195a6?w=400&q=80'
+      ]
+    };
+    return defaultImages[cat] || [
+      'https://images.unsplash.com/photo-1581094288338-2314dddb7ecc?w=400&q=80',
+      'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=400&q=80'
+    ];
+  };
 
   // جلب قائمة الفنيين
   useEffect(() => {
@@ -175,13 +217,14 @@ export const CustomerHome = ({ onSelectJobTrack }) => {
             const isFav = favorites.includes(art.id);
             return (
               <div 
-                key={art.id}
-                className="bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-850 p-4 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 relative"
+                key={art.id} 
+                onClick={() => setSelectedArtisanForProfile(art)}
+                className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 p-4.5 rounded-3xl shadow-sm transition-all duration-300 hover:scale-[1.01] hover:shadow-md cursor-pointer text-right"
               >
                 {/* زر المفضلة */}
                 <button 
-                  onClick={() => toggleFavorite(art.id)}
-                  className="absolute left-4 top-4 text-sm p-1.5 rounded-full hover:bg-slate-50 dark:hover:bg-slate-800 text-rose-500 transition-transform active:scale-75 cursor-pointer"
+                  onClick={(e) => { e.stopPropagation(); toggleFavorite(art.id); }}
+                  className="absolute left-4 top-4 text-sm p-1.5 rounded-full hover:bg-slate-50 dark:hover:bg-slate-800 text-rose-500 transition-transform active:scale-75 cursor-pointer z-10"
                 >
                   {isFav ? '❤️' : '🤍'}
                 </button>
@@ -218,7 +261,7 @@ export const CustomerHome = ({ onSelectJobTrack }) => {
                     <span className="text-[9px] text-slate-500 dark:text-slate-400 font-bold">المعاينة: {art.id === 'art-3' ? '80 ج.م' : '50 ج.م'}</span>
                     <Button 
                       size="sm"
-                      onClick={() => setSelectedArtisanForBooking(art)}
+                      onClick={(e) => { e.stopPropagation(); setSelectedArtisanForBooking(art); }}
                       className="bg-orange-500 hover:bg-orange-600 text-white text-[9px] font-black py-1.5 px-3 rounded-full transition-all duration-300 shadow-sm active:scale-95 border-none"
                     >
                       طلب فحص
@@ -244,6 +287,79 @@ export const CustomerHome = ({ onSelectJobTrack }) => {
           isOpen={!!selectedArtisanForBooking}
           onClose={() => setSelectedArtisanForBooking(null)}
         />
+      )}
+
+      {/* نافذة استعراض الملف المهني للفني */}
+      {selectedArtisanForProfile && (
+        <Modal
+          isOpen={!!selectedArtisanForProfile}
+          onClose={() => setSelectedArtisanForProfile(null)}
+          title={`الملف المهني للأسطى: ${selectedArtisanForProfile.name}`}
+          size="md"
+        >
+          <div className="flex flex-col gap-4 text-right font-cairo text-xs leading-relaxed" style={{ direction: language === 'ar' ? 'rtl' : 'ltr' }}>
+            
+            {/* بطاقة الرأس والتقييم */}
+            <div className="flex gap-4 items-center bg-slate-50 dark:bg-slate-800/40 p-4 rounded-3xl border border-slate-100 dark:border-slate-800">
+              <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-800 border-2 border-brand-orange flex items-center justify-center text-3xl shadow-inner">
+                👷‍♂️
+              </div>
+              <div className="flex-1">
+                <strong className="text-sm text-brand-navy dark:text-brand-light block">{selectedArtisanForProfile.name}</strong>
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 block mt-0.5">الهوية الرقمية: {selectedArtisanForProfile.custom_id}</span>
+                <span className="text-[10px] text-amber-500 font-bold block mt-1">⭐ {selectedArtisanForProfile.rating} / 5.0 ({selectedArtisanForProfile.completedJobs} عملية ناجحة)</span>
+              </div>
+            </div>
+
+            {/* نبذة عن الفني */}
+            <div>
+              <strong className="text-brand-navy dark:text-brand-light block mb-1">نبذة شخصية وخبرات:</strong>
+              <p className="bg-slate-50/50 dark:bg-slate-850 p-3 rounded-2xl text-slate-600 dark:text-slate-400">
+                {selectedArtisanForProfile.bio}
+              </p>
+            </div>
+
+            {/* نطاق وموقع الخدمة */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-slate-50/50 dark:bg-slate-850 p-3 rounded-2xl border border-slate-100 dark:border-slate-800">
+                <span className="text-slate-450 block font-bold text-[10px]">المحافظة والنطاق الرئيسي</span>
+                <strong className="text-brand-navy dark:text-brand-light mt-0.5 block">{profileUser ? profileUser.governorate : 'الجيزة'}</strong>
+              </div>
+              <div className="bg-slate-50/50 dark:bg-slate-850 p-3 rounded-2xl border border-slate-100 dark:border-slate-800">
+                <span className="text-slate-450 block font-bold text-[10px]">الحي والمربع السكني</span>
+                <strong className="text-brand-navy dark:text-brand-light mt-0.5 block">{profileUser ? profileUser.district : 'حدائق الأهرام'}</strong>
+              </div>
+            </div>
+
+            {/* معرض الأعمال السابقة */}
+            <div>
+              <strong className="text-brand-navy dark:text-brand-light block mb-1.5">📸 معرض صور الأعمال السابقة المنفذة:</strong>
+              <div className="grid grid-cols-2 gap-3 mt-1.5">
+                {getCategoryWorkImages(selectedArtisanForProfile.category).map((url, idx) => (
+                  <div key={idx} className="relative rounded-2xl overflow-hidden border border-slate-200/60 dark:border-slate-800 aspect-[4/3] bg-slate-100">
+                    <img 
+                      src={url} 
+                      alt="work sample" 
+                      className="w-full h-full object-cover transition-transform duration-500 hover:scale-110" 
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* زر الحجز المباشر */}
+            <Button
+              onClick={() => {
+                setSelectedArtisanForBooking(selectedArtisanForProfile);
+                setSelectedArtisanForProfile(null);
+              }}
+              className="w-full bg-brand-emerald border-brand-emerald text-xs font-black py-2.5 mt-2"
+            >
+              طلب فحص وصيانة فورية الآن 🏎️
+            </Button>
+
+          </div>
+        </Modal>
       )}
 
     </div>
