@@ -171,7 +171,12 @@ export const IncomingLeads = ({ onAcceptSuccess }) => {
                 <strong>تفاصيل المشكلة:</strong> {job.description}
               </div>
 
-              {selectingEtaForJobId === job.id ? (
+              {artisan && !artisan.verified ? (
+                <div className="bg-amber-500/10 border border-amber-500/20 p-3.5 rounded-2xl text-[10px] text-amber-700 dark:text-amber-400 font-extrabold flex items-center gap-2 leading-relaxed">
+                  <span>🔒</span>
+                  <span>يرجى توثيق حسابك ورفع الوثائق المطلوبة (البطاقة والفيش الجنائي) لتفعيل قبول طلبات الصيانة العاجلة. يمكنك رفعها من شاشة "حسابي".</span>
+                </div>
+              ) : selectingEtaForJobId === job.id ? (
                 /* واجهة اختيار وقت الوصول المتوقع ETA */
                 <div className="bg-orange-500/5 border border-brand-orange/20 p-3.5 rounded-2xl flex flex-col gap-2.5">
                   <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block">🏎️ اختر وقت وصولك المتوقع إلى العميل:</span>
