@@ -81,8 +81,22 @@ export const CustomerHome = ({ onSelectJobTrack }) => {
   };
 
   return (
-    <div className="flex flex-col gap-5 p-4 text-right font-cairo" style={{ direction: language === 'ar' ? 'rtl' : 'ltr' }}>
+    <div className="flex flex-col gap-5 p-4 text-right font-cairo bg-slate-50 dark:bg-[#0b0f19]" style={{ direction: language === 'ar' ? 'rtl' : 'ltr' }}>
       
+      {/* كارت طلب صيانة فورية عاجلة وبثه للحي */}
+      <div className="bg-gradient-to-l from-orange-500 to-amber-500 p-4.5 rounded-3xl text-white shadow-md shadow-orange-500/10 flex flex-col sm:flex-row justify-between items-center gap-3">
+        <div className="text-right">
+          <strong className="text-xs font-black block">🚨 صيانة فورية عاجلة بـ {district === 'الكل' ? governorate : district}</strong>
+          <span className="text-[9px] text-orange-100 block mt-1">بث عطلك فوراً لكافة فنيي السباكة، الكهرباء والتكييف القريبين منك ليصلك أحدهم حالاً!</span>
+        </div>
+        <button 
+          onClick={() => setSelectedArtisanForBooking({ id: 'dummy', name: 'بث عام لكافة الفنيين', category: 'plumber' })}
+          className="bg-white text-orange-600 text-[10px] font-black py-2 px-5 rounded-full hover:bg-orange-50 transition-colors shadow-sm active:scale-95 cursor-pointer border-none whitespace-nowrap"
+        >
+          اطلب فني الآن 🏎️
+        </button>
+      </div>
+
       {/* الفلترة الجغرافية الفورية */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 p-4.5 rounded-3xl shadow-sm">
         <h3 className="text-[11px] font-black text-slate-800 dark:text-brand-light mb-3">📍 اختيار موقع الخدمة بدقة</h3>
@@ -226,7 +240,7 @@ export const CustomerHome = ({ onSelectJobTrack }) => {
       {/* معالج حجز الخدمة Booking Wizard Modal */}
       {selectedArtisanForBooking && (
         <BookingFlow
-          artisan={selectedArtisanForBooking}
+          artisan={selectedArtisanForBooking.id === 'dummy' ? null : selectedArtisanForBooking}
           isOpen={!!selectedArtisanForBooking}
           onClose={() => setSelectedArtisanForBooking(null)}
         />
