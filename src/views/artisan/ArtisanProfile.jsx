@@ -185,8 +185,8 @@ export const ArtisanProfile = () => {
 
   const handleUploadSubmit = async (e) => {
     e.preventDefault();
-    if (nationalIdNum.length !== 14) {
-      alert("يرجى إدخال رقم قومي صحيح مكون من 14 رقم.");
+    if (nationalIdNum.length < 10) {
+      alert("يرجى إدخال رقم قومي صحيح مكون من 14 رقم (أو 10 أرقام على الأقل للتجربة).");
       return;
     }
     setUploadLoading(true);

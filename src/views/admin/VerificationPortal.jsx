@@ -14,8 +14,8 @@ export const VerificationPortal = ({ activeRole = 'superadmin' }) => {
   useEffect(() => {
     const fetchArtisans = async () => {
       const all = await db.artisans.getAll();
-      // فحص الحرفيين الذين لم يتم توثيقهم بعد
-      setPendingArtisans(all.filter(a => !a.verified));
+      // فحص الحرفيين الذين قاموا برفع الأوراق ولم يتم توثيقهم بعد
+      setPendingArtisans(all.filter(a => !a.verified && a.verificationStatus === 'submitted'));
     };
     fetchArtisans();
 
@@ -125,8 +125,8 @@ export const VerificationPortal = ({ activeRole = 'superadmin' }) => {
                 <div className="bg-slate-50 dark:bg-slate-950/30 p-4 rounded-2xl border border-slate-150/40 dark:border-slate-850">
                   <strong className="text-[11px] text-slate-800 dark:text-brand-light block mb-2">📄 بطاقة الرقم القومي المصرية:</strong>
                   <div className="text-[10px] text-slate-500 dark:text-slate-400 space-y-1">
-                    <div><strong>الرقم القومي:</strong> {art.nationalIdNumber || '29402120104532'}</div>
-                    <div><strong>المستند المرفق:</strong> <span className="underline text-orange-500 cursor-pointer">{art.nationalIdImage || 'id_card_copy.jpg'}</span></div>
+                    <div><strong>الرقم القومي:</strong> {art.nationalIdNumber || 'غير متوفر'}</div>
+                    <div><strong>المستند المرفق:</strong> <span className="underline text-orange-500 cursor-pointer">{art.nationalIdImage || 'لم يرفع'}</span></div>
                     <div><strong>الحالة المهنية:</strong> سارية بمطابقة الفيش</div>
                   </div>
                 </div>
@@ -136,7 +136,7 @@ export const VerificationPortal = ({ activeRole = 'superadmin' }) => {
                   <strong className="text-[11px] text-slate-800 dark:text-brand-light block mb-2">👮‍♂️ صحيفة الحالة الجنائية (الفيش والتشبيه):</strong>
                   <div className="text-[10px] text-slate-500 dark:text-slate-400 space-y-1">
                     <div className="text-emerald-500 font-bold">🟢 خالي من السوابق والأحكام الجنائية</div>
-                    <div><strong>المستند المرفق:</strong> <span className="underline text-orange-500 cursor-pointer">{art.criminalRecordImage || 'clean_feesh.jpg'}</span></div>
+                    <div><strong>المستند المرفق:</strong> <span className="underline text-orange-500 cursor-pointer">{art.criminalRecordImage || 'لم يرفع'}</span></div>
                     <div><strong>الجهة الموجه إليها:</strong> منصة حرفجي للخدمات المنزلية</div>
                   </div>
                 </div>
