@@ -93,20 +93,49 @@ class DualModeDatabase {
     return () => this.listeners.delete(callback);
   }
 
-  // Retrieve entire collection (Table)
+  // Retrieve entire collection (Table) - مع دمج ومزامنة البيانات حياً
   async getCollection(collectionName) {
+    let supabaseData = [];
+    let supabaseSuccess = false;
+
     if (isSupabaseActive) {
       try {
         const { data, error } = await supabase
           .from(collectionName)
           .select('*');
         if (error) throw error;
-        return data;
+        supabaseData = data || [];
+        supabaseSuccess = true;
       } catch (err) {
         console.warn(`Supabase read failed for ${collectionName}. Falling back to LocalStorage.`, err);
       }
     }
-    return JSON.parse(localStorage.getItem(`harfagy_db_${collectionName}`) || "[]");
+
+    // جلب البيانات من التخزين المحلي الاحتياطي
+    const localKey = `harfagy_db_${collectionName}`;
+    const localVal = localStorage.getItem(localKey);
+    let localData = [];
+    
+    if (localVal) {
+      localData = JSON.parse(localVal);
+    } else {
+      // تحميل بيانات البذر (Seed Data) في حال عدم وجود بيانات محلية
+      localData = SEED_DATA[collectionName] || [];
+      localStorage.setItem(localKey, JSON.stringify(localData));
+    }
+
+    // دمج البيانات لمنع فقدان الحسابات المسجلة محلياً في حال فشل السحابة
+    if (supabaseSuccess) {
+      const merged = [...supabaseData];
+      localData.forEach(localItem => {
+        if (!merged.some(sbItem => sbItem.id === localItem.id)) {
+          merged.push(localItem);
+        }
+      });
+      return merged;
+    }
+
+    return localData;
   }
 
   // Retrieve single document by ID
@@ -203,6 +232,14 @@ class DualModeDatabase {
       createdAt: payload.createdAt || new Date().toISOString()
     };
 
+    // حفظ فوري في التخزين المحلي لضمان وجود نسخة احتياطية محلية
+    const collection = await this.getCollection(collectionName);
+    if (!collection.some(doc => doc.id === newDoc.id)) {
+      collection.push(newDoc);
+    }
+    localStorage.setItem(`harfagy_db_${collectionName}`, JSON.stringify(collection));
+
+    // مزامنة حية في الخلفية مع قاعدة البيانات السحابية في حال تفعيلها
     if (isSupabaseActive) {
       try {
         const { data, error } = await supabase
@@ -213,20 +250,27 @@ class DualModeDatabase {
         this.notify(collectionName);
         return data[0];
       } catch (err) {
-        console.warn(`Supabase write failed for ${collectionName}. Falling back to LocalStorage.`, err);
+        console.warn(`Supabase write failed for ${collectionName}. Data is saved locally in LocalStorage.`, err);
       }
     }
 
-    // LocalStorage fallback
-    const collection = await this.getCollection(collectionName);
-    collection.push(newDoc);
-    localStorage.setItem(`harfagy_db_${collectionName}`, JSON.stringify(collection));
     this.notify(collectionName);
     return newDoc;
   }
 
-  // Update existing document (Update Row)
+  // Update existing document (Update Row) - التحديث الفوري المزدوج
   async updateDocument(collectionName, docId, updates) {
+    // 1. تحديث التخزين المحلي أولاً
+    const collection = await this.getCollection(collectionName);
+    const index = collection.findIndex(doc => doc.id === docId);
+    let localUpdatedDoc = null;
+    if (index !== -1) {
+      collection[index] = { ...collection[index], ...updates };
+      localStorage.setItem(`harfagy_db_${collectionName}`, JSON.stringify(collection));
+      localUpdatedDoc = collection[index];
+    }
+
+    // 2. تحديث السحابة
     if (isSupabaseActive) {
       try {
         const { data, error } = await supabase
@@ -238,24 +282,22 @@ class DualModeDatabase {
         this.notify(collectionName);
         return data[0];
       } catch (err) {
-        console.warn(`Supabase update failed for ${collectionName}:${docId}. Falling back to LocalStorage.`, err);
+        console.warn(`Supabase update failed for ${collectionName}:${docId}. Saved locally in LocalStorage.`, err);
       }
     }
 
-    // LocalStorage fallback
-    const collection = await this.getCollection(collectionName);
-    const index = collection.findIndex(doc => doc.id === docId);
-    if (index !== -1) {
-      collection[index] = { ...collection[index], ...updates };
-      localStorage.setItem(`harfagy_db_${collectionName}`, JSON.stringify(collection));
-      this.notify(collectionName);
-      return collection[index];
-    }
-    return null;
+    this.notify(collectionName);
+    return localUpdatedDoc;
   }
 
-  // Delete document (Delete Row)
+  // Delete document (Delete Row) - الحذف الفوري المزدوج
   async deleteDocument(collectionName, docId) {
+    // 1. الحذف من التخزين المحلي
+    const collection = await this.getCollection(collectionName);
+    const filtered = collection.filter(doc => doc.id !== docId);
+    localStorage.setItem(`harfagy_db_${collectionName}`, JSON.stringify(filtered));
+
+    // 2. الحذف من السحابة
     if (isSupabaseActive) {
       try {
         const { error } = await supabase
@@ -266,14 +308,10 @@ class DualModeDatabase {
         this.notify(collectionName);
         return true;
       } catch (err) {
-        console.warn(`Supabase delete failed for ${collectionName}:${docId}. Falling back to LocalStorage.`, err);
+        console.warn(`Supabase delete failed for ${collectionName}:${docId}. Deleted locally.`, err);
       }
     }
 
-    // LocalStorage fallback
-    const collection = await this.getCollection(collectionName);
-    const filtered = collection.filter(doc => doc.id !== docId);
-    localStorage.setItem(`harfagy_db_${collectionName}`, JSON.stringify(filtered));
     this.notify(collectionName);
     return true;
   }
