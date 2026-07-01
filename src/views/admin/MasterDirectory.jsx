@@ -20,6 +20,12 @@ export const MasterDirectory = ({ activeRole = 'superadmin' }) => {
   const [roleFilter, setRoleFilter] = useState('all');
   const [expandedUserId, setExpandedUserId] = useState(null);
 
+  // حالات النافذة الداخلية للتفاصيل التاريخية الشاملة
+  const [historyModalUser, setHistoryModalUser] = useState(null);
+  const [modalSearchQuery, setModalSearchQuery] = useState('');
+  const [modalStatusFilter, setModalStatusFilter] = useState('all');
+  const [modalActiveTab, setModalActiveTab] = useState('jobs');
+
   useEffect(() => {
     const fetchAllData = async () => {
       const allUsers = await db.users.getAll();
@@ -475,7 +481,7 @@ export const MasterDirectory = ({ activeRole = 'superadmin' }) => {
                               </div>
                             )}
 
-                            {/* سجل الطلبات والعمليات التفصيلية داخلياً للعملاء والحرفيين */}
+                            {/* زر الانتقال وعرض السجل التفصيلي الشامل في نافذة داخلية */}
                             {(user.role === 'customer' || user.role === 'artisan') && (() => {
                               const userJobsList = user.role === 'customer' 
                                 ? jobs.filter(j => j && j.customerId === user.id)
@@ -485,59 +491,18 @@ export const MasterDirectory = ({ activeRole = 'superadmin' }) => {
                                   });
 
                               return (
-                                <div className="mt-2 border-t border-slate-100 dark:border-slate-800 pt-3 text-right">
-                                  <strong className="text-[10px] font-black text-slate-700 dark:text-slate-300 block mb-2">📋 سجل تفاصيل الطلبات وعمليات الصيانة المرتبطة ({userJobsList.length})</strong>
-                                  {userJobsList.length > 0 ? (
-                                    <div className="flex flex-col gap-2 max-h-48 overflow-y-auto pr-1 hide-scrollbar">
-                                      {userJobsList.map(job => (
-                                        <div key={job.id} className="bg-slate-50/50 dark:bg-slate-850 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 text-[10px] flex flex-col gap-1.5">
-                                          <div className="flex justify-between items-center pb-1 border-b border-slate-200/50 dark:border-slate-700/50">
-                                            <span className="font-extrabold text-brand-navy dark:text-brand-light">تذكرة رقم: #{job.id.substring(0, 8)}</span>
-                                            <span className={`px-2 py-0.5 rounded-md font-black text-[9px]
-                                              ${job.status === 'completed' ? 'bg-emerald-500/10 text-emerald-600'
-                                               : job.status === 'cancelled' ? 'bg-rose-500/10 text-rose-600'
-                                               : job.status === 'accepted' ? 'bg-orange-500/10 text-orange-600'
-                                               : 'bg-amber-500/10 text-amber-600 animate-pulse'}`}
-                                            >
-                                              {job.status === 'completed' ? '✓ مكتملة'
-                                               : job.status === 'cancelled' ? '✕ ملغاة'
-                                               : job.status === 'accepted' ? '🏎️ جاري التنفيذ'
-                                               : '📡 قيد البحث والانتظار'}
-                                            </span>
-                                          </div>
-                                          
-                                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 leading-relaxed text-slate-500 dark:text-slate-400">
-                                            <div>
-                                              <strong>👤 العميل:</strong> {job.customerName} ({job.customerPhone || 'بلا هاتف'})
-                                            </div>
-                                            <div>
-                                              <strong>👷‍♂️ الحرفي:</strong> {job.artisanName || 'لم يتم التعيين بعد'} {job.artisanPhone ? `(${job.artisanPhone})` : ''}
-                                            </div>
-                                            <div>
-                                              <strong>⚙️ نوع الخدمة:</strong> {getCategoryLabel(job.category)}
-                                            </div>
-                                            <div>
-                                              <strong>📅 تاريخ الطلب:</strong> {job.createdAt ? new Date(job.createdAt).toLocaleString('ar-EG') : 'غير متوفر'}
-                                            </div>
-                                          </div>
-
-                                          <div className="bg-slate-100/50 dark:bg-slate-900/60 p-2 rounded-lg text-slate-500 dark:text-slate-400 leading-relaxed">
-                                            <strong>📝 وصف البلاغ:</strong> {job.description || 'بلا تفاصيل'} | الشارع: {job.street || 'غير محدد'}
-                                          </div>
-
-                                          <div className="flex justify-between items-center text-[9px] text-slate-500 dark:text-slate-400 font-extrabold mt-1">
-                                            <span>سعر الفحص: {job.price || 0} ج.م</span>
-                                            <span>عمولة المنصة: {job.commission || 0} ج.م</span>
-                                            <span>الإجمالي بالضريبة: {job.totalPrice || 0} ج.م</span>
-                                          </div>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  ) : (
-                                    <div className="text-center py-4 bg-slate-50 dark:bg-slate-900 rounded-xl text-[10px] text-slate-400">
-                                      لا توجد طلبات مسجلة لهذا الحساب حالياً.
-                                    </div>
-                                  )}
+                                <div className="mt-3 border-t border-slate-100 dark:border-slate-800 pt-3 text-center">
+                                  <Button 
+                                    variant="primary" 
+                                    size="sm"
+                                    className="text-[9px] font-black px-6 py-2 rounded-xl w-full flex items-center justify-center gap-1.5 bg-gradient-to-r from-orange-550 to-amber-550 hover:from-orange-600 hover:to-amber-600 text-white shadow-sm transition-all hover:scale-[1.01]"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setHistoryModalUser(user);
+                                    }}
+                                  >
+                                    <span>📋 فتح السجل التاريخي وتذاكر الصيانة الشاملة ({userJobsList.length} طلب) ➡️</span>
+                                  </Button>
                                 </div>
                               );
                             })()}
@@ -558,6 +523,234 @@ export const MasterDirectory = ({ activeRole = 'superadmin' }) => {
         </table>
       </div>
 
+      {/* النافذة الداخلية الشاملة والعملية للتقرير التاريخي والرقابي */}
+      {historyModalUser && (() => {
+        const stats = getUserStats(historyModalUser);
+        const isCustomer = historyModalUser.role === 'customer';
+        
+        // جلب العمليات والطلبات المرتبطة
+        const userJobsList = isCustomer 
+          ? jobs.filter(j => j && j.customerId === historyModalUser.id)
+          : jobs.filter(j => {
+              const artProfile = artisans.find(a => a && a.userId === historyModalUser.id);
+              return artProfile && j && j.artisanId === artProfile.id;
+            });
+            
+        // جلب الشكاوى المرتبطة
+        const userComplaintsList = isCustomer
+          ? complaints.filter(c => c && c.customerId === historyModalUser.id)
+          : complaints.filter(c => {
+              const artProfile = artisans.find(a => a && a.userId === historyModalUser.id);
+              return artProfile && c && c.artisanId === artProfile.id;
+            });
+
+        // فلترة الطلبات بناءً على البحث والفلترة داخل النافذة
+        const filteredModalJobs = userJobsList.filter(job => {
+          if (modalStatusFilter !== 'all' && job.status !== modalStatusFilter) return false;
+          
+          const q = modalSearchQuery.toLowerCase();
+          return job.id.toLowerCase().includes(q) || 
+                 job.customerName.toLowerCase().includes(q) || 
+                 (job.artisanName && job.artisanName.toLowerCase().includes(q)) ||
+                 (job.description && job.description.toLowerCase().includes(q)) ||
+                 (job.street && job.street.toLowerCase().includes(q));
+        });
+
+        return (
+          <div className="absolute inset-0 z-40 bg-[#f8fafc] dark:bg-[#090d16] flex flex-col p-4 animate-fadeIn overflow-y-auto">
+            {/* الهيدر العلوي */}
+            <div className="flex justify-between items-center pb-3 border-b border-slate-200 dark:border-slate-800">
+              <div>
+                <h3 className="text-xs font-black text-brand-navy dark:text-brand-light flex items-center gap-1.5">
+                  🔍 السجل التاريخي الشامل: {historyModalUser.name}
+                </h3>
+                <span className="text-[9px] text-slate-400 font-extrabold mt-0.5 block">الهوية الرقمية: {historyModalUser.custom_id || 'بلا معرف'} | الرتبة: {historyModalUser.role === 'customer' ? 'عميل 👤' : 'حرفي 👷‍♂️'}</span>
+              </div>
+              <button 
+                onClick={() => {
+                  setHistoryModalUser(null);
+                  setModalSearchQuery('');
+                  setModalStatusFilter('all');
+                  setModalActiveTab('jobs');
+                }}
+                className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-rose-500 hover:text-white transition-colors flex items-center justify-center font-black text-xs shadow-sm"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* تفاصيل ومعلومات الحساب الجانبية */}
+            <div className="bg-white dark:bg-[#111827] border border-slate-200/50 dark:border-slate-800/80 p-3.5 rounded-2xl shadow-sm text-[10px] grid grid-cols-2 gap-3.5 mt-3 text-right">
+              <div>
+                <span className="text-slate-400 font-bold block mb-1">📞 رقم الهاتف الجوال</span>
+                <strong className="text-brand-navy dark:text-brand-light text-xs">{historyModalUser.phone}</strong>
+              </div>
+              <div>
+                <span className="text-slate-400 font-bold block mb-1">📍 العنوان والحي الجغرافي</span>
+                <strong className="text-brand-navy dark:text-brand-light text-[11px]">{historyModalUser.governorate} • {historyModalUser.district}</strong>
+              </div>
+              <div>
+                <span className="text-slate-400 font-bold block mb-1">✉️ البريد الإلكتروني</span>
+                <strong className="text-brand-navy dark:text-brand-light text-[11px]">{historyModalUser.email || 'غير مسجل'}</strong>
+              </div>
+              <div>
+                <span className="text-slate-400 font-bold block mb-1">💰 رصيد المحفظة الحالي</span>
+                <strong className="text-emerald-600 dark:text-emerald-400 text-xs font-black">{stats.wallet} ج.م</strong>
+              </div>
+            </div>
+
+            {/* التبويبات الداخلية للنافذة */}
+            <div className="flex border-b border-slate-200 dark:border-slate-850 mt-4 text-[10px] font-black">
+              <button 
+                onClick={() => setModalActiveTab('jobs')}
+                className={`py-2 px-4 border-b-2 transition-all ${modalActiveTab === 'jobs' ? 'border-brand-orange text-brand-orange bg-orange-500/5' : 'border-transparent text-slate-400'}`}
+              >
+                🛠️ تذاكر الصيانة والعمليات ({userJobsList.length})
+              </button>
+              <button 
+                onClick={() => setModalActiveTab('complaints')}
+                className={`py-2 px-4 border-b-2 transition-all ${modalActiveTab === 'complaints' ? 'border-brand-orange text-brand-orange bg-orange-500/5' : 'border-transparent text-slate-400'}`}
+              >
+                ⚠️ الشكاوى والنزاعات المسجلة ({userComplaintsList.length})
+              </button>
+            </div>
+
+            {/* محتوى التبويبات */}
+            <div className="flex-1 overflow-y-auto mt-3 pr-1 hide-scrollbar">
+              {modalActiveTab === 'jobs' && (
+                <div className="flex flex-col gap-3">
+                  {/* أدوات التصفية والبحث المصغرة داخل التبويب */}
+                  <div className="grid grid-cols-3 gap-2 pb-2">
+                    <div className="col-span-2">
+                      <input 
+                        type="text" 
+                        placeholder="ابحث برقم التذكرة أو الوصف أو اسم الطرف الآخر..." 
+                        value={modalSearchQuery}
+                        onChange={(e) => setModalSearchQuery(e.target.value)}
+                        className="w-full text-[9px] p-2 rounded-xl bg-white dark:bg-[#111827] text-brand-navy dark:text-brand-light border border-slate-200 dark:border-slate-800 outline-none shadow-sm focus:border-brand-orange"
+                      />
+                    </div>
+                    <div>
+                      <select
+                        value={modalStatusFilter}
+                        onChange={(e) => setModalStatusFilter(e.target.value)}
+                        className="w-full text-[9px] p-2 rounded-xl bg-slate-50 dark:bg-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 outline-none"
+                      >
+                        <option value="all">كل الحالات</option>
+                        <option value="completed">✓ مكتملة</option>
+                        <option value="cancelled">✕ ملغاة</option>
+                        <option value="accepted">🏎️ قيد التنفيذ</option>
+                        <option value="pending">📡 قيد الانتظار</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {filteredModalJobs.length > 0 ? (
+                    filteredModalJobs.map(job => (
+                      <div key={job.id} className="bg-white dark:bg-[#111827] border border-slate-200/60 dark:border-slate-800/80 p-3.5 rounded-2xl shadow-sm text-[10px] flex flex-col gap-2.5 text-right">
+                        
+                        <div className="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-slate-800">
+                          <span className="font-extrabold text-brand-navy dark:text-brand-light text-xs">تذكرة صيانة رقم: #{job.id.substring(0, 8)}</span>
+                          <span className={`px-2 py-0.5 rounded-full font-black text-[9px]
+                            ${job.status === 'completed' ? 'bg-emerald-500/10 text-emerald-600'
+                             : job.status === 'cancelled' ? 'bg-rose-500/10 text-rose-600'
+                             : job.status === 'accepted' ? 'bg-orange-500/10 text-orange-600'
+                             : 'bg-amber-500/10 text-amber-600 animate-pulse'}`}
+                          >
+                            {job.status === 'completed' ? '✓ مكتملة'
+                             : job.status === 'cancelled' ? '✕ ملغاة'
+                             : job.status === 'accepted' ? '🏎️ جاري التنفيذ'
+                             : '📡 قيد البحث والانتظار'}
+                          </span>
+                        </div>
+
+                        {/* طرفي الطلب المتكاملة */}
+                        <div className="grid grid-cols-2 gap-3 leading-relaxed text-slate-600 dark:text-slate-400 pb-2 border-b border-slate-50 dark:border-slate-850">
+                          <div className="bg-slate-50/50 dark:bg-slate-900/50 p-2 rounded-xl">
+                            <strong className="text-brand-orange block text-[8px] mb-0.5">👤 العميل (صاحب الطلب)</strong>
+                            <div className="font-black text-slate-800 dark:text-brand-light">{job.customerName}</div>
+                            <div className="mt-0.5">{job.customerPhone || 'بلا هاتف'}</div>
+                          </div>
+                          
+                          <div className="bg-slate-50/50 dark:bg-slate-900/50 p-2 rounded-xl">
+                            <strong className="text-brand-orange block text-[8px] mb-0.5">👷‍♂️ الحرفي (مزود الخدمة)</strong>
+                            <div className="font-black text-slate-800 dark:text-brand-light">{job.artisanName || 'لم يتم قبول الطلب بعد'}</div>
+                            <div className="mt-0.5">{job.artisanPhone || 'لا يوجد'}</div>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3 leading-relaxed text-slate-500 dark:text-slate-400">
+                          <div>
+                            <strong>⚙️ نوع التخصص:</strong> {getCategoryLabel(job.category)}
+                          </div>
+                          <div>
+                            <strong>📅 تاريخ التذكرة:</strong> {job.createdAt ? new Date(job.createdAt).toLocaleString('ar-EG') : 'غير متوفر'}
+                          </div>
+                        </div>
+
+                        <div className="bg-[#f8fafc] dark:bg-slate-900/60 p-2.5 rounded-xl text-slate-600 dark:text-slate-400 leading-relaxed">
+                          <strong className="text-slate-700 dark:text-slate-350 block text-[9px] mb-1">📝 تفاصيل بلاغ الصيانة والموقع:</strong> 
+                          <div>{job.description || 'بلا وصف للمشكلة'}</div>
+                          <div className="mt-1 text-[8.5px] border-t border-slate-200/40 dark:border-slate-800/40 pt-1 text-slate-450">
+                            📍 الشارع الجغرافي: {job.street || 'غير محدد'}
+                          </div>
+                        </div>
+
+                        {/* الحساب المالي التفصيلي والربحية */}
+                        <div className="bg-orange-500/5 dark:bg-orange-550/5 border border-orange-500/10 p-2.5 rounded-xl grid grid-cols-3 gap-2 text-center font-extrabold text-[9px]">
+                          <div>
+                            <span className="text-slate-400 block text-[8px]">سعر الكشف</span>
+                            <strong className="text-slate-700 dark:text-slate-300 block mt-0.5">{job.price || 0} ج.م</strong>
+                          </div>
+                          <div>
+                            <span className="text-slate-400 block text-[8px]">عمولة المنصة</span>
+                            <strong className="text-brand-orange block mt-0.5">{job.commission || 0} ج.م</strong>
+                          </div>
+                          <div>
+                            <span className="text-slate-400 block text-[8px]">إجمالي التذكرة</span>
+                            <strong className="text-emerald-600 dark:text-emerald-400 block mt-0.5">{job.totalPrice || 0} ج.م</strong>
+                          </div>
+                        </div>
+
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8 bg-white dark:bg-[#111827] border border-slate-200/50 dark:border-slate-800 rounded-2xl text-[10px] text-slate-400">
+                      لم يتم العثور على أي تذاكر مطابقة لشروط البحث.
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {modalActiveTab === 'complaints' && (
+                <div className="flex flex-col gap-3">
+                  {userComplaintsList.length > 0 ? (
+                    userComplaintsList.map(complaint => (
+                      <div key={complaint.id} className="bg-white dark:bg-[#111827] border border-slate-200/60 dark:border-slate-800/80 p-3.5 rounded-2xl shadow-sm text-[10px] flex flex-col gap-2 text-right">
+                        <div className="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-slate-800">
+                          <strong className="font-extrabold text-brand-navy dark:text-brand-light text-xs">تذكرة نزاع رقم: #{complaint.id.substring(0, 8)}</strong>
+                          <span className={`px-2 py-0.5 rounded-full font-black text-[9px] bg-amber-500/10 text-amber-600`}>
+                            ⚠️ شكوى مسجلة
+                          </span>
+                        </div>
+
+                        <div className="leading-relaxed text-slate-600 dark:text-slate-400">
+                          <div><strong>📝 تفاصيل الشكوى المقدمة:</strong> {complaint.text || complaint.description || 'بلا وصف'}</div>
+                          <div className="mt-1"><strong>📅 تاريخ التسجيل:</strong> {complaint.createdAt ? new Date(complaint.createdAt).toLocaleString('ar-EG') : 'غير متوفر'}</div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8 bg-white dark:bg-[#111827] border border-slate-200/50 dark:border-slate-800 rounded-2xl text-[10px] text-slate-400">
+                      لا توجد أي شكاوى أو نزاعات مسجلة لهذا المستخدم.
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };
