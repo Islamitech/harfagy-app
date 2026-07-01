@@ -40,6 +40,19 @@ export const MasterDirectory = ({ activeRole = 'superadmin' }) => {
     return () => unsub();
   }, []);
 
+  // ترجمة وتسمية التخصصات المهنية باللغة العربية
+  const getCategoryLabel = (catId) => {
+    const categories = {
+      plumber: 'سباكة (S)',
+      electrician: 'كهرباء (K)',
+      hvac: 'تكييف (T)',
+      carpenter: 'نجارة (N)',
+      painter: 'دهانات (D)',
+      appliances: 'أجهزة منزلية (H)'
+    };
+    return categories[catId] || catId;
+  };
+
   // التحقق من صلاحيات حظر حسابات المستخدمين بناءً على رتب النظام
   const canBlockUser = (activeAdminRole, targetUser) => {
     // لا يمكن حظر حسابات المدير العام أو المسؤول الأول إطلاقاً
@@ -461,6 +474,73 @@ export const MasterDirectory = ({ activeRole = 'superadmin' }) => {
                                 </div>
                               </div>
                             )}
+
+                            {/* سجل الطلبات والعمليات التفصيلية داخلياً للعملاء والحرفيين */}
+                            {(user.role === 'customer' || user.role === 'artisan') && (() => {
+                              const userJobsList = user.role === 'customer' 
+                                ? jobs.filter(j => j && j.customerId === user.id)
+                                : jobs.filter(j => {
+                                    const artProfile = artisans.find(a => a && a.userId === user.id);
+                                    return artProfile && j && j.artisanId === artProfile.id;
+                                  });
+
+                              return (
+                                <div className="mt-2 border-t border-slate-100 dark:border-slate-800 pt-3 text-right">
+                                  <strong className="text-[10px] font-black text-slate-700 dark:text-slate-300 block mb-2">📋 سجل تفاصيل الطلبات وعمليات الصيانة المرتبطة ({userJobsList.length})</strong>
+                                  {userJobsList.length > 0 ? (
+                                    <div className="flex flex-col gap-2 max-h-48 overflow-y-auto pr-1 hide-scrollbar">
+                                      {userJobsList.map(job => (
+                                        <div key={job.id} className="bg-slate-50/50 dark:bg-slate-850 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 text-[10px] flex flex-col gap-1.5">
+                                          <div className="flex justify-between items-center pb-1 border-b border-slate-200/50 dark:border-slate-700/50">
+                                            <span className="font-extrabold text-brand-navy dark:text-brand-light">تذكرة رقم: #{job.id.substring(0, 8)}</span>
+                                            <span className={`px-2 py-0.5 rounded-md font-black text-[9px]
+                                              ${job.status === 'completed' ? 'bg-emerald-500/10 text-emerald-600'
+                                               : job.status === 'cancelled' ? 'bg-rose-500/10 text-rose-600'
+                                               : job.status === 'accepted' ? 'bg-orange-500/10 text-orange-600'
+                                               : 'bg-amber-500/10 text-amber-600 animate-pulse'}`}
+                                            >
+                                              {job.status === 'completed' ? '✓ مكتملة'
+                                               : job.status === 'cancelled' ? '✕ ملغاة'
+                                               : job.status === 'accepted' ? '🏎️ جاري التنفيذ'
+                                               : '📡 قيد البحث والانتظار'}
+                                            </span>
+                                          </div>
+                                          
+                                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 leading-relaxed text-slate-500 dark:text-slate-400">
+                                            <div>
+                                              <strong>👤 العميل:</strong> {job.customerName} ({job.customerPhone || 'بلا هاتف'})
+                                            </div>
+                                            <div>
+                                              <strong>👷‍♂️ الحرفي:</strong> {job.artisanName || 'لم يتم التعيين بعد'} {job.artisanPhone ? `(${job.artisanPhone})` : ''}
+                                            </div>
+                                            <div>
+                                              <strong>⚙️ نوع الخدمة:</strong> {getCategoryLabel(job.category)}
+                                            </div>
+                                            <div>
+                                              <strong>📅 تاريخ الطلب:</strong> {job.createdAt ? new Date(job.createdAt).toLocaleString('ar-EG') : 'غير متوفر'}
+                                            </div>
+                                          </div>
+
+                                          <div className="bg-slate-100/50 dark:bg-slate-900/60 p-2 rounded-lg text-slate-500 dark:text-slate-400 leading-relaxed">
+                                            <strong>📝 وصف البلاغ:</strong> {job.description || 'بلا تفاصيل'} | الشارع: {job.street || 'غير محدد'}
+                                          </div>
+
+                                          <div className="flex justify-between items-center text-[9px] text-slate-500 dark:text-slate-400 font-extrabold mt-1">
+                                            <span>سعر الفحص: {job.price || 0} ج.م</span>
+                                            <span>عمولة المنصة: {job.commission || 0} ج.م</span>
+                                            <span>الإجمالي بالضريبة: {job.totalPrice || 0} ج.م</span>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <div className="text-center py-4 bg-slate-50 dark:bg-slate-900 rounded-xl text-[10px] text-slate-400">
+                                      لا توجد طلبات مسجلة لهذا الحساب حالياً.
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })()}
 
                           </div>
                         </td>
